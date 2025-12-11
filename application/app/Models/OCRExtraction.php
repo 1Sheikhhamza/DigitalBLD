@@ -16,9 +16,16 @@ class OCRExtraction extends Model
             'judgment' => $this->judgment,
             'key_words' => $this->key_words,
             'subject' => $this->subject,
-            'case_name' => $this->case_name,
             'case_no' => $this->case_no,
             'parties' => $this->parties,
+            'book_volume' => $this->book_volume,
+            'published_year' => $this->published_year,
+            'starting_page_no' => $this->starting_page_no,
+            'decided_on' => $this->decided_on,
+            'judges' => $this->judges,
+            'division' => $this->division,
+            'petitioners' => $this->petitioners,
+            'respondent' => $this->respondent,
             'related_act_order_rule' => $this->related_act_order_rule,
         ];
     }

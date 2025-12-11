@@ -250,9 +250,9 @@ class LegalSearchController extends BaseController
         return $resultString; */
     }
 
-    public function singleDecision($id, $returnParam = null, Request $request)
+    public function singleDecision(Request $request, $id, $returnParam = null)
     {
-        $returnParamString = Crypt::decrypt($returnParam);
+        $returnParamString = $returnParam ? Crypt::decrypt($returnParam) : 'leagalSearch';
         $page = $request->query('page');
 
         $isBookmarked = Bookmark::where('user_id', auth('subscriber')->id())
