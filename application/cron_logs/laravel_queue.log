@@ -1,0 +1,20 @@
+  2025-09-10 06:50:02 App\Jobs\ProcessOCRExtraction .................. RUNNING
+  2025-09-10 06:51:37 App\Jobs\ProcessOCRExtraction .............. 1m 34s DONE
+  2025-09-10 06:52:01 App\Mail\OcrResultMail ......................... RUNNING
+  2025-09-10 06:52:01 App\Mail\OcrResultMail ................... 113.78ms DONE
+  2025-09-10 06:57:02 App\Jobs\ProcessOCRExtraction .................. RUNNING
+  2025-09-10 06:58:26 App\Jobs\ProcessOCRExtraction .............. 1m 24s DONE
+  2025-09-10 06:59:01 App\Mail\OcrResultMail ......................... RUNNING
+  2025-09-10 06:59:01 App\Mail\OcrResultMail .................... 94.37ms DONE
+  2025-09-10 07:01:02 App\Jobs\ProcessOCRExtraction .................. RUNNING
+  2025-09-10 07:01:34 App\Jobs\ProcessOCRExtraction ................. 32s DONE
+  2025-09-10 07:02:01 App\Mail\OcrResultMail ......................... RUNNING
+  2025-09-10 07:02:01 App\Mail\OcrResultMail .................... 59.12ms DONE
+  2025-09-10 07:05:02 App\Jobs\ProcessOCRExtraction .................. RUNNING
+  2025-09-10 07:06:17 App\Jobs\ProcessOCRExtraction .............. 1m 15s DONE
+  2025-09-10 07:07:02 App\Mail\OcrResultMail ......................... RUNNING
+  2025-09-10 07:07:02 App\Mail\OcrResultMail .................... 76.70ms DONE
+  2025-09-10 07:09:01 App\Jobs\ProcessOCRExtraction .................. RUNNING
+  2025-09-10 07:10:25 App\Jobs\ProcessOCRExtraction .............. 1m 23s DONE
+  2025-09-10 07:11:01 App\Mail\OcrResultMail ......................... RUNNING
+  2025-09-10 07:11:01 App\Mail\OcrResultMail .................... 64.87ms DONE

@@ -1,0 +1,64 @@
+# Laravel specific
+/vendor/
+/node_modules/
+/public/storage
+/storage/*.key
+/.env
+/.env.backup
+Homestead.yaml
+Homestead.json
+.phpunit.result.cache
+
+# Laravel IDE helper files
+/_ide_helper.php
+/_ide_helper_models.php
+
+# Logs and cache
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+
+# Composer PHAR
+/composer.phar
+
+# NPM and Yarn
+npm-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+/.vscode/
+/.idea/
+/*.sublime-workspace
+/*.sublime-project
+
+# Coverage reports
+coverage/
+
+# Debug bar
+/debugbar/*
+
+# PHPUnit
+.phpunit.result.cache
+
+# ENV file backups
+.env.testing
+.env.local
+.env.production
+
+# Ignore compiled files
+/public/hot
+/public/css
+/public/js
+/public/mix-manifest.json
+
+# Ignore storage links (you should recreate it manually)
+/public/storage

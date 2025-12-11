@@ -1,0 +1,38 @@
+# System files
+.DS_Store
+.id_conf
+__MACOSX
+
+# Dependencies
+/application/vendor/
+/application/node_modules/
+**/vendor/
+**/node_modules/
+
+# Environment
+.env
+.env.backup
+.env.production
+
+# Binaries and Data
+application/meilisearch
+application/data.ms/
+database/*.sql
+*.sql
+*.phar
+
+# Logs and Storage
+application/storage/logs/
+application/storage/framework/views/
+application/storage/framework/cache/
+application/storage/framework/sessions/
+application/storage/framework/testing/
+
+# Backups and Other site copies
+application/*-*-2025/
+application/test.bldlegalized.com/
+application/*-*-2025_*/
+
+# Large files
+*.zip
+*.tar.gz

@@ -1,0 +1,80 @@
+@extends('admin.layouts.app')
+@section('title', 'Dashboard')
+@section('content')
+<div class="app-wrapper">
+    @include('admin.layouts.sidebar')
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h3 class="mb-0">Banner</h3>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-end">
+                        <button type="button" onclick="permissions('banners','1');" style="color:#000; " class="btn btn-success btn-sm m-2"><i class="fa fa-check"></i> Approved</button>
+                            <button type="button" onclick="permissions('banners','0');" style="color:#000; " class="btn btn-warning btn-sm m-2"><i class="fa fa-times"></i> Disapproved</button>
+                            <button type="button" onclick="deletedata('masterdelete','banners');" style="color:#fff; " class="btn btn-danger btn-sm m-2"><i class="fa fa-times"></i> Multiple Delete</button>
+                            <a href="{{ route('banners.create') }}" style="color:#fff; margin-right:20px" class="btn btn-primary btn-sm m-2"><i class="fa fa-plus"></i> Add New</a>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="app-content">
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Banner List</h3>
+                        <div class="card-tools"> <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"> <i data-lte-icon="expand" class="bi bi-plus-lg"></i> <i data-lte-icon="collapse" class="bi bi-dash-lg"></i> </button> <button type="button" class="btn btn-tool" data-lte-toggle="card-remove"> <i class="bi bi-x-lg"></i> </button> </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <form id="form_check">
+                                <table class="table m-0">
+                                    <thead>
+                                        <tr>
+                                            <th width="4%"><input name="checkbox" onclick='checkedAll();' type="checkbox" readonly="readonly" /></th>
+                                            <th>SI</th>
+                                            <th>Banner Name</th>
+                                            <th>Image</th>
+                                            <th>Link</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($banners as $banner)
+                                        <tr id="tablerow<?php echo $banner->id; ?>" class="tablerow">
+                                            <td><input type="checkbox" name="summe_code[]" id="summe_code<?php echo $banner->id; ?>" value="{{ $banner->id }}" /></td>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>{{ $banner->title }}</td>
+                                            <td><img src="{{ asset('uploads/banners/' . $banner->image) }}" alt="Website Banner" style="max-height: 100px;"></td>
+                                            <td>{{ $banner->link }}</td>
+                                            <td>
+                                                {!! $banner->status ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-danger">Inactive</span>' !!}
+                                            </td>
+                                            <td>
+                                                <a href="{{ route('banners.edit', $banner->id) }}" title="Edit Record" class="btn btn-warning btn-sm me-2"><i class="fa fa-edit"></i></a>
+                                                <button type="button" class="btn btn-danger btn-sm" title="Delete Record"
+                                                    onclick="deleteSingle('<?php echo $banner->id; ?>','masterdelete','banners')"><i class="fa fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+
+                                    </tbody>
+                                </table>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-footer clearfix">
+                        {{ $banners->links('pagination::bootstrap-4')}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    @include('admin/layouts.footer')
+</div>
+
+@endsection

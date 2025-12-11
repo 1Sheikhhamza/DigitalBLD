@@ -1,0 +1,43 @@
+/* public../css/fonts.css */
+
+@font-face {
+  font-family: 'Kalpurush ANSI';
+  src: url('../fonts/kalpurush_ansi.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Adorsho Lipi';
+  src: url('../fonts/ALIPI_NO.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Solaiman Lipi';
+  src: url('../fonts/solaimanlipi.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SutonnyMJ';
+  src: url('../fonts/SutonnyMJ Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Siyam Rupali ANSI';
+  src: url('../fonts/Siyam Rupali ANSI.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Siyam Rupali';
+  src: url('../fonts/Siyamrupali.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
