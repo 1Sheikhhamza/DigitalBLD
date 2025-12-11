@@ -42,6 +42,7 @@ use App\Http\Controllers\Auth\SubscriberAuthController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\Subscriber\DashboardController;
 use App\Http\Controllers\Auth\Subscriber\LegalSearchController;
+use App\Http\Controllers\Auth\Subscriber\AiAssistantController;
 use App\Http\Controllers\Auth\Subscriber\SupremeSearchController;
 use App\Http\Controllers\Auth\Subscriber\ScobSearchController;
 use App\Http\Controllers\Auth\Subscriber\BookmarkController;
@@ -54,6 +55,8 @@ use App\Http\Controllers\Auth\Subscriber\DictionaryController;
 use App\Http\Controllers\Auth\Subscriber\BlogInteractionController;
 
 // Home & Static Pages
+Route::get('/test-route-sanity', function () {
+    return 'sanity check'; });
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('content/{slug}/{sslug?}', [HomeController::class, 'content'])->name('content');
 
@@ -100,6 +103,9 @@ Route::get('sitemap', [HomeController::class, 'sitemap'])->name('sitemap');
 Route::prefix('subscriber')->group(function () {
 
     Route::post('register/send-otp', [SubscriberAuthController::class, 'sendOtp'])->name('subscriber.sendOtp');
+
+    // AI Summarizer (Placed here for visibility/testing)
+    Route::post('/ai/summarize-judgment', [AiAssistantController::class, 'summarizeJudgment'])->name('ai.summarize');
 
     // Guest routes — only accessible if NOT logged in as subscriber
     Route::middleware('guest:subscriber')->group(function () {
@@ -193,6 +199,7 @@ Route::prefix('subscriber')->group(function () {
             // Single Legal Decision
             Route::get('myDecision/{id}', [LegalSearchController::class, 'myDecision'])->name('myDecision');
             Route::get('singleDecision/{id}/{type?}', [LegalSearchController::class, 'singleDecision'])->name('singleDecision');
+
             Route::get('sharedDecision/{id}', [LegalSearchController::class, 'sharedDecision'])->name('sharedDecision');
 
             // Download PDF

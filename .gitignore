@@ -36,3 +36,5 @@ application/*-*-2025_*/
 # Large files
 *.zip
 *.tar.gz
+
+application/.env
