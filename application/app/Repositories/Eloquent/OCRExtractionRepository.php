@@ -19,8 +19,7 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
 
     public function index($filters = [])
     {
-        $query = OCRExtraction::with('volume:id,number,year,index_file')
-            ->orderBy('id', 'desc');
+        $query = OCRExtraction::with('volume:id,number,year,index_file');
 
         if (!empty($filters['case_no'])) {
             $query->where('case_no', 'LIKE', '%' . $filters['case_no'] . '%');
@@ -50,6 +49,17 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
             $query->where('homepage', $filters['homepage']);
         }
 
+        // CONDITIONAL SORTING
+        if (!empty($filters['volume_id'])) {
+            // 1. Division: Appellate (A) comes before High Court (H) -> ASC
+            $query->orderBy('division', 'asc');
+            // 2. Page Number: Ascending (Small to Large)
+            $query->orderBy('starting_page_no', 'asc');
+        } else {
+            // Default: newest first
+            $query->orderBy('id', 'desc');
+        }
+
         return $query->paginate(50)->appends($filters);
     }
 
@@ -66,28 +76,28 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
         ];
         $volume_id = $this->volumeInsert($volumeData);
         return OCRExtraction::create([
-            'volume_id'             => $volume_id,
-            'book_volume'           => $data['book_volume'] ?? null,
-            'published_year'        => $data['published_year'] ?? null,
-            'decided_on'            => $data['decided_on'] ?? null,
-            'published_month'       => $this->getJudgmentMonth($data['decided_on']) ?? null,
-            'starting_page_no'      => $data['starting_page_no'] ?? null,
-            'ending_page_no'        => $data['ending_page_no'] ?? null,
-            'division'              => $data['division'] ?? null,
-            'judge_name'            => $data['judge_name'] ?? null,
-            'parties'               => $data['parties'] ?? null,
-            'petitioners'           => $data['petitioners'] ?? null,
-            'respondent'            => $data['respondent'] ?? null,
+            'volume_id' => $volume_id,
+            'book_volume' => $data['book_volume'] ?? null,
+            'published_year' => $data['published_year'] ?? null,
+            'decided_on' => $data['decided_on'] ?? null,
+            'published_month' => $this->getJudgmentMonth($data['decided_on']) ?? null,
+            'starting_page_no' => $data['starting_page_no'] ?? null,
+            'ending_page_no' => $data['ending_page_no'] ?? null,
+            'division' => $data['division'] ?? null,
+            'judge_name' => $data['judge_name'] ?? null,
+            'parties' => $data['parties'] ?? null,
+            'petitioners' => $data['petitioners'] ?? null,
+            'respondent' => $data['respondent'] ?? null,
             'related_act_order_rule' => $data['related_act_order_rule'] ?? null,
-            'sections_subsections'  => $data['sections_subsections'] ?? null,
-            'key_words'             => $data['key_words'] ?? null,
-            'subject'               => $data['subject'] ?? null,
-            'result'               => $data['result'] ?? null,
-            'case_no'               => $data['case_no'] ?? null,
-            'jurisdiction'          => $data['jurisdiction'] ?? null,
-            'judgment'              => $data['judgment'] ?? null,
-            'created_at'            => now(),
-            'updated_at'            => now(),
+            'sections_subsections' => $data['sections_subsections'] ?? null,
+            'key_words' => $data['key_words'] ?? null,
+            'subject' => $data['subject'] ?? null,
+            'result' => $data['result'] ?? null,
+            'case_no' => $data['case_no'] ?? null,
+            'jurisdiction' => $data['jurisdiction'] ?? null,
+            'judgment' => $data['judgment'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
@@ -114,10 +124,10 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
         $volume = Volume::where('number', $volumeData['number'])->first();
 
         $updateData = [
-            'number'     => $volumeData['number'] ?? ($volume ? $volume->number : null),
-            'year'       => $volumeData['year'] ?? ($volume ? $volume->year : null),
+            'number' => $volumeData['number'] ?? ($volume ? $volume->number : null),
+            'year' => $volumeData['year'] ?? ($volume ? $volume->year : null),
             'index_file' => $volumeData['index_file'] ?? ($volume ? $volume->index_file : null),
-            'status'     => $volumeData['status'] ?? 1,
+            'status' => $volumeData['status'] ?? 1,
         ];
 
         if ($volume) {
@@ -155,27 +165,27 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
         $volume_id = $this->volumeInsert($volumeData);
 
         $menuUpdate = [
-            'volume_id'             => $data['volume_id'] ? $volume_id : $currentData->volume_id,
+            'volume_id' => $data['volume_id'] ? $volume_id : $currentData->volume_id,
             // 'book_volume'           => $data['book_volume'] ?? $currentData->book_volume,
-            'published_year'        => $data['published_year'] ?? $currentData->published_year,
-            'decided_on'            => $data['decided_on'] ?? $currentData->decided_on,
-            'published_month'       => $this->getJudgmentMonth($data['decided_on']) ?? $currentData->published_month,
-            'starting_page_no'      => $data['starting_page_no'] ?? $currentData->starting_page_no,
-            'ending_page_no'        => $data['ending_page_no'] ?? $currentData->ending_page_no,
-            'division'              => $data['division'] ?? $currentData->division,
-            'judge_name'            => $data['judge_name'] ?? $currentData->judge_name,
-            'parties'               => $data['parties'] ?? $currentData->parties,
-            'petitioners'           => $data['petitioners'] ?? $currentData->petitioners,
-            'respondent'            => $data['respondent'] ?? $currentData->respondent,
+            'published_year' => $data['published_year'] ?? $currentData->published_year,
+            'decided_on' => $data['decided_on'] ?? $currentData->decided_on,
+            'published_month' => $this->getJudgmentMonth($data['decided_on']) ?? $currentData->published_month,
+            'starting_page_no' => $data['starting_page_no'] ?? $currentData->starting_page_no,
+            'ending_page_no' => $data['ending_page_no'] ?? $currentData->ending_page_no,
+            'division' => $data['division'] ?? $currentData->division,
+            'judge_name' => $data['judge_name'] ?? $currentData->judge_name,
+            'parties' => $data['parties'] ?? $currentData->parties,
+            'petitioners' => $data['petitioners'] ?? $currentData->petitioners,
+            'respondent' => $data['respondent'] ?? $currentData->respondent,
             'related_act_order_rule' => $data['related_act_order_rule'] ?? $currentData->related_act_order_rule,
-            'sections_subsections'  => $data['sections_subsections'] ?? $currentData->sections_subsections,
-            'key_words'             => $data['key_words'] ?? $currentData->key_words,
-            'subject'               => $data['subject'] ?? $currentData->subject,
-            'result'               => $data['result'] ?? $currentData->result,
-            'case_no'               => $data['case_no'] ?? $currentData->case_no,
-            'jurisdiction'          => $data['jurisdiction'] ?? $currentData->jurisdiction,
-            'judgment'              => $data['judgment'] ?? $currentData->judgment,
-            'updated_at'            => now(),
+            'sections_subsections' => $data['sections_subsections'] ?? $currentData->sections_subsections,
+            'key_words' => $data['key_words'] ?? $currentData->key_words,
+            'subject' => $data['subject'] ?? $currentData->subject,
+            'result' => $data['result'] ?? $currentData->result,
+            'case_no' => $data['case_no'] ?? $currentData->case_no,
+            'jurisdiction' => $data['jurisdiction'] ?? $currentData->jurisdiction,
+            'judgment' => $data['judgment'] ?? $currentData->judgment,
+            'updated_at' => now(),
         ];
 
         $currentData->update($menuUpdate);

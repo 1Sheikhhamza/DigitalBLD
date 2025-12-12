@@ -274,6 +274,8 @@ class LegalSearchController extends BaseController
         }
 
         $judgmentTextFormatted = $this->judgmentText($judgmentText, $highlightKeywords);
+
+        // Default: sequential ID navigation
         $previousDecision = OCRExtraction::where('id', '<', $id)
             ->orderBy('id', 'desc')
             ->first();
@@ -281,6 +283,38 @@ class LegalSearchController extends BaseController
         $nextDecision = OCRExtraction::where('id', '>', $id)
             ->orderBy('id', 'asc')
             ->first();
+
+        // Custom: Volume Index navigation (Page based)
+        // Check if we are coming from a volume index view
+        if (strpos($returnParamString, 'volume.index/') !== false) {
+            $currentStartPage = (int) $data->starting_page_no;
+
+            // Previous: Same volume, Earlier page (or same page but lower ID)
+            $previousDecision = OCRExtraction::where('volume_id', $data->volume_id)
+                ->where(function ($query) use ($currentStartPage, $id) {
+                    $query->whereRaw('CAST(starting_page_no AS UNSIGNED) < ?', [$currentStartPage])
+                        ->orWhere(function ($q) use ($currentStartPage, $id) {
+                            $q->whereRaw('CAST(starting_page_no AS UNSIGNED) = ?', [$currentStartPage])
+                                ->where('id', '<', $id);
+                        });
+                })
+                ->orderByRaw('CAST(starting_page_no AS UNSIGNED) DESC')
+                ->orderBy('id', 'DESC')
+                ->first();
+
+            // Next: Same volume, Later page (or same page but higher ID)
+            $nextDecision = OCRExtraction::where('volume_id', $data->volume_id)
+                ->where(function ($query) use ($currentStartPage, $id) {
+                    $query->whereRaw('CAST(starting_page_no AS UNSIGNED) > ?', [$currentStartPage])
+                        ->orWhere(function ($q) use ($currentStartPage, $id) {
+                            $q->whereRaw('CAST(starting_page_no AS UNSIGNED) = ?', [$currentStartPage])
+                                ->where('id', '>', $id);
+                        });
+                })
+                ->orderByRaw('CAST(starting_page_no AS UNSIGNED) ASC')
+                ->orderBy('id', 'ASC')
+                ->first();
+        }
 
 
         $returnToVolume = $data->division == 'Appellate Division' ? 'legalDecisionAppellate' : 'legalDecisionHighCourt';
@@ -432,7 +466,7 @@ class LegalSearchController extends BaseController
     }
 
 
-    /* public function downloadPdf($id)
+    public function downloadPdf($id)
     {
         $data = OCRExtraction::findOrFail($id);
         $userNote = LegalDecisionUserNote::where('user_id', auth('subscriber')->id())
@@ -447,7 +481,7 @@ class LegalSearchController extends BaseController
 
         $pdf = Pdf::loadView('auth.subscribers.profile.legal_decision_print', compact('data', 'metaData', 'userNote', 'judgmentTextFormatted'));
         return $pdf->download('legal-decision-' . $data->id . '.pdf');
-    } */
+    }
 
     public function printView($id, $type = null)
     {
@@ -573,7 +607,103 @@ class LegalSearchController extends BaseController
             ->where('id', $volume_id)
             ->firstOrFail();
 
-        return view('auth.subscribers.profile.index', compact('volumeData'));
+        $appellateDecisions = OCRExtraction::where('volume_id', $volume_id)
+            ->where('division', 'Appellate Division')
+            ->select('id', 'parties', 'starting_page_no', 'ending_page_no')
+            ->orderBy('starting_page_no', 'asc') // Ordering by page number makes sense for an index
+            ->get()
+            ->map(function ($item) {
+                $item->parties = $this->cleanPartyName($item->parties);
+                return $item;
+            });
+
+        $highCourtDecisions = OCRExtraction::where('volume_id', $volume_id)
+            ->where('division', 'High Court Division')
+            ->select('id', 'parties', 'starting_page_no', 'ending_page_no')
+            ->orderBy('starting_page_no', 'asc')
+            ->get()
+            ->map(function ($item) {
+                $item->parties = $this->cleanPartyName($item->parties);
+                return $item;
+            });
+
+        return view('auth.subscribers.profile.index', compact('volumeData', 'appellateDecisions', 'highCourtDecisions'));
+    }
+
+    private function cleanPartyName($name)
+    {
+        // 1. Remove HTML tags and decode entities
+        $name = strip_tags(html_entity_decode($name, ENT_QUOTES | ENT_HTML5));
+        // Double check for common stubbornly encoded entities
+        $name = str_replace(['&amp;', '&nbsp;'], ['&', ' '], $name);
+
+        // 2. Remove asterisks
+        $name = str_replace('*', '', $name);
+
+        // 3. Define status words (longest first)
+        $statusWords = [
+            'Plaintiff-Petitioner',
+            'Defendant Appellants',
+            'Plaintiff-Appellants',
+            'Plaintiff-Respondents',
+            'Defendant Opposite Part',
+            'Condemned Petitioner',
+            'Condemned Prisoners',
+            'Condemned Prisoner',
+            'Accused Petitioner',
+            'Accused Applicant',
+            'Opposite Parties',
+            'Defendant-Appellant',
+            'Defd-Appellant',
+            'Decree-holder',
+            'Objector',
+            'Opposite Party',
+            'Petitioners',
+            'Petitioner',
+            'Appellants',
+            'Appellant',
+            'Respondants',
+            'Respondents',
+            'Respondent',
+            'Defendants',
+            'Defendant',
+            'Applicant',
+            'Accused', // Added broadly as it often appears alone in parens like (Accused)
+            'Plaintiff'
+        ];
+
+        // 4. Remove status words individually
+        // Using \b to ensure we match whole words throughout the string
+        foreach ($statusWords as $word) {
+            $name = preg_replace('/\b' . preg_quote($word, '/') . '\b/iu', ' ', $name);
+        }
+
+        // Remove empty parentheses or parentheses containing only punctuation/spaces (often left over after status removal)
+        // e.g. "( )", "(-)", "(. )"
+        $name = preg_replace('/\([\s\.\-\_\x{2013}\x{2014}]*\)/u', ' ', $name);
+
+        // 5. Clean up residual punctuation and specific garbage
+        // Remove ellipsis
+        $name = str_replace(["\xe2\x80\xa6", "\xE2\x80\xA6"], ' ', $name); // UTF-8 Bytes for … (U+2026)
+        // Also regex match for unicode chars just in case
+        $name = preg_replace('/\x{2026}/u', ' ', $name);
+
+        // Remove 2+ sequences of dots, underscores, dashes (all types) allowing for spaces in between
+        // e.g. "......" or ". . . . . ." or "_ _ _" or "- - -"
+        $name = preg_replace('/(?:[\s]*[\._\-\x{2013}\x{2014}][\s]*){2,}/u', ' ', $name);
+
+        // Remove stray hyphens or dots that might be left over (e.g. "Name - Name")
+        // We want to keep hyphens IN names (Al-Helal), but not floating ones.
+        // Floating hyphen: space hyphen space
+        $name = preg_replace('/\s+[\-\x{2013}\x{2014}]\s+/u', ' ', $name);
+
+        // Remove leading/trailing punctuation (dots, hyphens, underscores, unicode dashes)
+        // "Name." -> "Name"
+        // ".Name" -> "Name"
+        $name = preg_replace('/^[\.\-\s_\x{2013}\x{2014}]+|[\.\-\s_\x{2013}\x{2014}]+$/u', '', $name);
+
+        // 6. Final whitespace normalization
+        return trim(preg_replace('/\s+/', ' ', $name));
     }
 
     public function legalDecisionAppellate($volume_id)
@@ -585,7 +715,8 @@ class LegalSearchController extends BaseController
         $appellateDecisions = OCRExtraction::whereNotNull('volume_id')
             ->where('division', 'Appellate Division')
             ->where('volume_id', $volume_id)
-            ->orderBy('id', 'DESC')
+            ->orderByRaw('CAST(starting_page_no AS UNSIGNED) ASC')
+            ->orderBy('id', 'ASC')
             ->paginate(30);
 
         return view('auth.subscribers.profile.appellate', compact('volumeData', 'appellateDecisions'));
@@ -600,7 +731,8 @@ class LegalSearchController extends BaseController
         $highCourtDecisions = OCRExtraction::whereNotNull('volume_id')
             ->where('division', 'High Court Division')
             ->where('volume_id', $volume_id)
-            ->orderBy('id', 'DESC')
+            ->orderByRaw('CAST(starting_page_no AS UNSIGNED) ASC')
+            ->orderBy('id', 'ASC')
             ->paginate(30);
 
         return view('auth.subscribers.profile.highcourt', compact('volumeData', 'highCourtDecisions'));

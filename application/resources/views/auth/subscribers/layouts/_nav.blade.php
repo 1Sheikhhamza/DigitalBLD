@@ -20,7 +20,7 @@
     <li>
         <a href="{{ route('ai.research') }}"
             class="text-white text-decoration-none {{ Route::currentRouteName() === 'ai.research' ? 'active' : '' }}">
-            <i class="bi bi-robot me-1"></i>AI Research
+            AI Research
         </a>
     </li>
     <li>

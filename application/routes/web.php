@@ -62,6 +62,10 @@ Route::get('/test-route-sanity', function () {
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('content/{slug}/{sslug?}', [HomeController::class, 'content'])->name('content');
 
+// Public Preview Routes
+Route::get('/preview-judgment/{id}', [HomeController::class, 'previewJudgment'])->name('preview.judgment');
+Route::get('/preview-judgment/{id}/print/{type?}', [HomeController::class, 'previewPrint'])->name('preview.judgment.print');
+
 Route::post('/inquiry', [HomeController::class, 'submitInquiry'])->name('inquiry.submit');
 Route::post('/project-owner', [HomeController::class, 'storeProjectOwner'])->name('project-owner.store');
 
@@ -120,6 +124,7 @@ Route::prefix('subscriber')->group(function () {
         Route::get('register', [SubscriberAuthController::class, 'showRegisterForm'])->name('subscriber.register');
         // Route::post('register', [SubscriberAuthController::class, 'register']);
 
+
         Route::post('register/send-otp', [SubscriberAuthController::class, 'sendOtp'])->name('subscriber.sendOtp');
         Route::post('register/resend-otp', [SubscriberAuthController::class, 'resend'])->name('subscriber.otp.resend');
         Route::get('register/otp', [SubscriberAuthController::class, 'showOtpForm'])->name('subscriber.otp');
@@ -162,6 +167,8 @@ Route::prefix('subscriber')->group(function () {
 
         Route::post('logout', [SubscriberAuthController::class, 'logout'])->name('logout');
         Route::get('dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+
+        Route::get('upgrade-plan', [DashboardController::class, 'upgradePlan'])->name('upgrade.plan');
 
 
 
@@ -326,7 +333,10 @@ Route::prefix('subscriber')->group(function () {
         Route::post('subscription/package/success', [FrontSubscriptionController::class, 'success'])->name('subscription.success');
         Route::post('subscription/package/fail', [FrontSubscriptionController::class, 'fail'])->name('subscription.fail');
         Route::post('subscription/package/cancel', [FrontSubscriptionController::class, 'cancel'])->name('subscription.cancel');
-        ;
+
+        // Reminders
+        Route::post('/reminders/mark-as-read', [\App\Http\Controllers\Auth\Subscriber\ReminderController::class, 'markAsRead'])->name('reminders.markAsRead');
+
     });
 });
 
@@ -382,6 +392,8 @@ Route::prefix('admin')->middleware('auth:administration')->group(function () {
         Route::resource('packages', PackageController::class);
         Route::resource('banners', BannerController::class);
         Route::resource('volumes', VolumeController::class);
+        Route::get('subscribers/suggestions', [SubscriberController::class, 'suggestions'])->name('subscribers.suggestions');
+        Route::get('subscribers/export', [SubscriberController::class, 'export'])->name('subscribers.export');
         Route::resource('subscribers', SubscriberController::class);
         Route::resource('subscriptions', SubscriptionController::class);
         Route::resource('ocr_extractions', OCRExtractionController::class);

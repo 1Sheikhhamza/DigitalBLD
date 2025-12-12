@@ -47,7 +47,52 @@
             {{ $today }}
           </span>
 
-          <!-- <i class="bi bi-bell mx-2"></i> -->
+
+          <!-- Reminder Dropdown -->
+          <div class="dropdown d-inline-block position-relative mx-2">
+            <a href="#" class="text-dark position-relative" id="reminderDropdown" role="button" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <i class="bi bi-bell fs-5"></i>
+              @if(isset($activeReminders) && $activeReminders->count() > 0)
+                <span
+                  class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                  <span class="visually-hidden">New alerts</span>
+                </span>
+              @endif
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end p-0 shadow border-0" aria-labelledby="reminderDropdown"
+              style="width: 300px;">
+              <li class="p-2 border-bottom fw-bold bg-light rounded-top">Reminders</li>
+              @if(isset($activeReminders) && $activeReminders->count() > 0)
+                @foreach($activeReminders as $reminder)
+                  <li>
+                    <a class="dropdown-item p-2 text-wrap" href="#" onclick="markReminderRead({{$reminder->id}}, event)">
+                      <div class="d-flex align-items-start">
+                        <i class="bi bi-calendar-event text-primary me-2 mt-1"></i>
+                        <div>
+                          <div class="fw-bold small">{{ $reminder->title }}</div>
+                          <div class="text-muted small" style="font-size: 0.8em;">
+                            @if($reminder->start_time)
+                              {{ \Carbon\Carbon::parse($reminder->start_time)->format('h:i A') }}
+                            @else
+                              All Day
+                            @endif
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                @endforeach
+                <li>
+                  <hr class="dropdown-divider m-0">
+                </li>
+                <li><a class="dropdown-item text-center small text-muted py-2" href="#"
+                    onclick="markReminderRead(null, event)">Mark all as read</a></li>
+              @else
+                <li class="p-3 text-center text-muted small">No active reminders</li>
+              @endif
+            </ul>
+          </div>
         @else
           @include('auth.subscribers.layouts._nav')
         @endif
@@ -61,7 +106,7 @@
 
   </nav>
 
-  @if(isset($announcements) && $announcements->count() > 0)
+  @if((isset($announcements) && $announcements->count() > 0) || (isset($activeReminders) && $activeReminders->count() > 0))
     <div class="announcement-bar footer dark-background py-2 overflow-hidden"
       style="border-top: none; padding-top: 10px; padding-bottom: 10px;">
       <div class="container">
@@ -77,6 +122,18 @@
                   {{ $announcement->message }}
                 </span>
               @endforeach
+
+              @if(isset($activeReminders) && $activeReminders->count() > 0)
+                @foreach($activeReminders as $reminder)
+                  <span class="me-5">
+                    <i class="bi bi-alarm-fill me-2 text-danger"></i>
+                    <span class="fw-bold text-danger">Reminder:</span> {{ $reminder->title }}
+                    @if($reminder->start_time)
+                      - {{ \Carbon\Carbon::parse($reminder->start_time)->format('h:i A') }}
+                    @endif
+                  </span>
+                @endforeach
+              @endif
             </div>
           </div>
         </div>
@@ -456,6 +513,31 @@
 
   @stack('scripts')
 
+  <script>
+    function markReminderRead(id, e) {
+      if (e) e.preventDefault();
+
+      let data = {
+        _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      };
+
+      if (id) data.id = id;
+
+      $.ajax({
+        url: "{{ route('subscriber.reminders.markAsRead') }}",
+        type: "POST",
+        data: data,
+        success: function (response) {
+          if (response.success) {
+            window.location.reload();
+          }
+        },
+        error: function () {
+          alert('Error updating reminder status.');
+        }
+      });
+    }
+  </script>
 </body>
 
 </html>

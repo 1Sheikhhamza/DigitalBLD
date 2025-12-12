@@ -172,8 +172,12 @@
   .avoid-break-inside {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-}
+  }
 
+  .highlight-word {
+    background-color: yellow !important;
+    color: black !important;
+  }
 </style>
 
 
@@ -222,7 +226,7 @@ function getLabel($array, $string)
 ?>
 
 <div class="container mt-5">
-  <div class="container document-container">
+  <div class="container document-container" id="judgment-content">
 
     <div class="document-header text-center">
       <h4>In the Supreme Court of Bangladesh ({{ $data->division }})</h4>
@@ -237,7 +241,7 @@ function getLabel($array, $string)
         <li>
           Page: {{ $data->starting_page_no ?? '' }}
           @if($data->ending_page_no)
-          to {{ $data->ending_page_no }}
+            to {{ $data->ending_page_no }}
           @endif
         </li>
       </ul>
@@ -298,15 +302,15 @@ function getLabel($array, $string)
     <h5 class="judgment-heading">JUDGMENT</h5>
 
     @php
-    $paragraphs = preg_split("/\r\n|\n|\r/", trim($judgmentTextFormatted));
+      $paragraphs = preg_split("/\r\n|\n|\r/", trim($judgmentTextFormatted));
     @endphp
 
 
     <div class="document-section" style="text-align: justify; white-space: normal;">
       @foreach($paragraphs as $para)
-      <p class="avoid-break-inside" style="margin-bottom: 10px;">
-        {!! $para !!}
-      </p>
+        <p class="avoid-break-inside" style="margin-bottom: 10px;">
+          {!! $para !!}
+        </p>
       @endforeach
     </div>
 

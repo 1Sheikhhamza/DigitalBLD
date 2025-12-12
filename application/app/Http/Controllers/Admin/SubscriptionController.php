@@ -29,7 +29,7 @@ class SubscriptionController extends Controller
     {
         $subscriberList = $this->commonService->getSubscriber();
         $packageList = $this->commonService->getPackage();
-        return view('admin.subscriptions.create', compact('subscriberList','packageList'));
+        return view('admin.subscriptions.create', compact('subscriberList', 'packageList'));
     }
 
     public function store(SubscriptionRequest $request)
@@ -48,8 +48,8 @@ class SubscriptionController extends Controller
     {
         $subscription = $this->subscriptionService->find($id);
         $subscriberList = $this->commonService->getSubscriber();
-        $packageList = $this->commonService->getPackages();
-        return view('admin.subscriptions.edit', compact('subscription','subscriberList','packageList'));
+        $packageList = $this->commonService->getPackage();
+        return view('admin.subscriptions.edit', compact('subscription', 'subscriberList', 'packageList'));
     }
 
     public function update(SubscriptionRequest $request, $id)

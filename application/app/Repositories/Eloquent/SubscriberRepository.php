@@ -10,9 +10,38 @@ use Illuminate\Support\Facades\DB;
 class SubscriberRepository implements SubscriberRepositoryInterface
 {
     ////////////////// Admin ////////
-    public function index()
+    public function index($filters = [])
     {
-        return Subscriber::orderBy('id', 'desc')->paginate(50);
+        $query = $this->buildQuery($filters);
+        return $query->paginate(50);
+    }
+
+    public function getAll($filters = [])
+    {
+        return $this->buildQuery($filters)->get();
+    }
+
+    private function buildQuery($filters)
+    {
+        $query = Subscriber::with('latestSubscription')->orderBy('id', 'desc');
+
+        if (!empty($filters['name'])) {
+            $query->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+
+        if (!empty($filters['email'])) {
+            $query->where('email', 'like', '%' . $filters['email'] . '%');
+        }
+
+        if (!empty($filters['mobile'])) {
+            $query->where('mobile', 'like', '%' . $filters['mobile'] . '%');
+        }
+
+        if (!empty($filters['date'])) {
+            $query->whereDate('created_at', $filters['date']);
+        }
+
+        return $query;
     }
 
     public function create(array $data)
@@ -29,7 +58,7 @@ class SubscriberRepository implements SubscriberRepositoryInterface
             'password' => isset($data['password']) ? bcrypt($data['password']) : null,
         ];
 
-        $updateData['name'] = $updateData['first_name'].' '.$updateData['last_name'];
+        $subscriberData['name'] = $subscriberData['first_name'] . ' ' . $subscriberData['last_name'];
         // Handle profile image upload if present
         if (isset($data['profile_image']) && $data['profile_image']->isValid()) {
             $subscriberData['photo'] = $this->uploadProfileImage($data['profile_image']);
@@ -64,7 +93,7 @@ class SubscriberRepository implements SubscriberRepositoryInterface
             'updated_at' => now(),
         ];
 
-        $updateData['name'] = $updateData['first_name'].' '.$updateData['last_name'];
+        $updateData['name'] = $updateData['first_name'] . ' ' . $updateData['last_name'];
         if (!empty($data['password'])) {
             $updateData['password'] = bcrypt($data['password']);
         }
@@ -126,5 +155,18 @@ class SubscriberRepository implements SubscriberRepositoryInterface
         $patientData->forceDelete(); // Permanently delete the record
 
         return response()->json(['message' => 'Subscriber member permanently deleted']);
+    }
+    public function getSuggestions($field, $term)
+    {
+        $allowedFields = ['name', 'email', 'mobile'];
+        if (!in_array($field, $allowedFields)) {
+            return [];
+        }
+
+        return Subscriber::where($field, 'like', '%' . $term . '%')
+            ->select($field)
+            ->distinct()
+            ->limit(10)
+            ->pluck($field);
     }
 }

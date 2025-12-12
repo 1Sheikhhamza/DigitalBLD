@@ -16,9 +16,9 @@ class SubscriberController extends Controller
         $this->subscriberService = $subscriberService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $subscribers = $this->subscriberService->index();
+        $subscribers = $this->subscriberService->index($request->all());
         return view('admin.subscribers.index', compact('subscribers'));
     }
 
@@ -71,5 +71,53 @@ class SubscriberController extends Controller
     {
         $this->subscriberService->forceDelete($id);
         return redirect()->route('subscribers.index')->with('success', 'Subscriber permanently deleted.');
+    }
+    public function suggestions(Request $request)
+    {
+        $field = $request->query('field');
+        $term = $request->query('term');
+
+        if (!$field || !$term) {
+            return response()->json([]);
+        }
+
+        $suggestions = $this->subscriberService->getSuggestions($field, $term);
+        return response()->json($suggestions);
+    }
+
+    public function export(Request $request)
+    {
+        $subscribers = $this->subscriberService->export($request->all());
+
+        $callback = function () use ($subscribers) {
+            $file = fopen('php://output', 'w');
+
+            // Add BOM for Excel compatibility
+            fputs($file, "\xEF\xBB\xBF");
+
+            $columns = ['SL', 'Name', 'Email', 'Mobile', 'Registered Date', 'Status', 'Current Package', 'Expire Date'];
+            fputcsv($file, $columns);
+
+            $sl = 1;
+            foreach ($subscribers as $subscriber) {
+                $pkgName = $subscriber->latestSubscription && $subscriber->latestSubscription->package ? $subscriber->latestSubscription->package->title : 'N/A';
+                $expireDate = $subscriber->latestSubscription && $subscriber->latestSubscription->end_date ? $subscriber->latestSubscription->end_date->format('d M, Y') : 'N/A';
+
+                $row = [
+                    $sl++,
+                    $subscriber->name,
+                    $subscriber->email,
+                    $subscriber->mobile,
+                    $subscriber->created_at->format('d M, Y h:i A'),
+                    $subscriber->status ? 'Active' : 'Inactive',
+                    $pkgName,
+                    $expireDate
+                ];
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+
+        return response()->streamDownload($callback, 'subscribers-' . date('d-m-Y') . '.csv');
     }
 }

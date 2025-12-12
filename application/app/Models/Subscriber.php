@@ -41,6 +41,11 @@ class Subscriber extends Authenticatable
         return $this->hasMany(Subscription::class, 'subscriber_id');
     }
 
+    public function latestSubscription()
+    {
+        return $this->hasOne(Subscription::class)->latestOfMany('subscription_date');
+    }
+
     public function activeSubscription()
     {
         return $this->hasOne(Subscription::class)

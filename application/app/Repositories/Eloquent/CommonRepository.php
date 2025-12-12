@@ -35,7 +35,7 @@ class CommonRepository implements CommonRepositoryInterface
 
     public function getAdminSubscriber($limit)
     {
-        return Subscriber::limit($limit)->get();
+        return Subscriber::orderBy('id', 'desc')->limit($limit)->get();
     }
 
     public function getJurisdiction()

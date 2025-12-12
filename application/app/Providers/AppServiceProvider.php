@@ -135,7 +135,16 @@ class AppServiceProvider extends ServiceProvider
                 })
                 ->latest()
                 ->get();
-            $view->with('announcements', $announcements);
+
+            // Reminder Logic
+            $today = now()->format('Y-m-d');
+            $activeReminders = \App\Models\Event::where('user_id', $user->id)
+                ->whereDate('start_date', $today)
+                ->where('is_seen', false)
+                ->get();
+
+            $view->with('announcements', $announcements)
+                ->with('activeReminders', $activeReminders);
         });
     }
 }

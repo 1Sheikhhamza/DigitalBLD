@@ -1,6 +1,6 @@
-    @extends('admin.layouts.app')
-    @section('title', 'Dashboard')
-    @section('content')
+@extends('admin.layouts.app')
+@section('title', 'Dashboard')
+@section('content')
     <div class="app-wrapper">
         @include('admin.layouts.sidebar')
         <main class="app-main">
@@ -27,7 +27,8 @@
                     <div class="row">
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-primary shadow-sm"><i class="bi bi-people-fill"></i></span>
+                                <span class="info-box-icon text-bg-primary shadow-sm"><i
+                                        class="bi bi-people-fill"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Subscriber</span>
                                     <span class="info-box-number">{{ $subscriberCount }}</span>
@@ -65,7 +66,8 @@
                     <div class="row mt-3">
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-secondary shadow-sm"><i class="bi bi-journal-text"></i></span>
+                                <span class="info-box-icon text-bg-secondary shadow-sm"><i
+                                        class="bi bi-journal-text"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Total Legal Decisions</span>
                                     <span class="info-box-number">{{ $legalDecisionCount }}</span>
@@ -75,7 +77,8 @@
 
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-secondary shadow-sm"><i class="bi bi-journal-text"></i></span>
+                                <span class="info-box-icon text-bg-secondary shadow-sm"><i
+                                        class="bi bi-journal-text"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Appellate Division</span>
                                     <span class="info-box-number">{{ $appellateDivisionCount }}</span>
@@ -85,7 +88,8 @@
 
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-secondary shadow-sm"><i class="bi bi-journal-text"></i></span>
+                                <span class="info-box-icon text-bg-secondary shadow-sm"><i
+                                        class="bi bi-journal-text"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">High Court Division</span>
                                     <span class="info-box-number">{{ $highCourtDivisionCount }}</span>
@@ -95,7 +99,8 @@
 
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-info shadow-sm"><i class="bi bi-card-checklist"></i></span>
+                                <span class="info-box-icon text-bg-info shadow-sm"><i
+                                        class="bi bi-card-checklist"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Subscription</span>
                                     <span class="info-box-number">{{ $subscriptionCount }}</span>
@@ -137,7 +142,8 @@
                         <!-- New Card: Users -->
                         <div class="col-12 col-sm-6 col-md-3">
                             <div class="info-box">
-                                <span class="info-box-icon text-bg-primary shadow-sm"><i class="bi bi-people-fill"></i></span>
+                                <span class="info-box-icon text-bg-primary shadow-sm"><i
+                                        class="bi bi-people-fill"></i></span>
                                 <div class="info-box-content">
                                     <span class="info-box-text">Users</span>
                                     <span class="info-box-number">{{ $userCount }}</span>
@@ -192,27 +198,28 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($subscribers as $subscriber)
-                                                <tr>
-                                                    <td>{{ $loop->iteration }}</td>
-                                                    <td>{{ $subscriber->name }}</td>
-                                                    <td>{{ $subscriber->mobile }}</td>
-                                                    <td>{{ $subscriber->created_at->format('d M, Y') }}</td>
-                                                    <td><span class="badge text-bg-success">Active</span></td>
-                                                </tr>
+                                                    <tr>
+                                                        <td>{{ $loop->iteration }}</td>
+                                                        <td>{{ $subscriber->name }}</td>
+                                                        <td>{{ $subscriber->mobile }}</td>
+                                                        <td>{{ $subscriber->created_at->format('d M, Y') }}</td>
+                                                        <td><span class="badge text-bg-success">Active</span></td>
+                                                    </tr>
                                                 @endforeach
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                                 <div class="card-footer clearfix">
-                                    <a href="{{ route('subscribers.index') }}" class="btn btn-sm btn-secondary float-end">View All Subscriber</a>
+                                    <a href="{{ route('subscribers.index') }}"
+                                        class="btn btn-sm btn-secondary float-end">View All Subscriber</a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3 class="card-title">Latest Subscriptions</h3>
+                                    <h3 class="card-title">Paid Subscriber</h3>
                                     <div class="card-tools">
                                         <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
                                             <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
@@ -237,25 +244,27 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($latestSubscriptions as $subscription)
-                                                <tr>
-                                                    <td>{{ $loop->iteration }}</td>
-                                                    <td>{{ $subscription->subscriber->name ?? 'N/A' }}</td>
-                                                    <td>{{ number_format($subscription->fee, 2) }}</td>
-                                                    <td>{{ $subscription->created_at->format('d M, Y') }}</td>
-                                                    <td><span class="badge text-bg-success">Active</span></td>
-                                                </tr>
+                                                    <tr>
+                                                        <td>{{ $loop->iteration }}</td>
+                                                        <td>{{ $subscription->subscriber->name ?? 'N/A' }}</td>
+                                                        <td>{{ number_format($subscription->fee, 2) }}</td>
+                                                        <td>{{ $subscription->created_at->format('d M, Y') }}</td>
+                                                        <td><span class="badge text-bg-success">Active</span></td>
+                                                    </tr>
                                                 @endforeach
                                                 @if($latestSubscriptions->isEmpty())
-                                                <tr>
-                                                    <td colspan="5" class="text-center text-muted">No subscriptions found.</td>
-                                                </tr>
+                                                    <tr>
+                                                        <td colspan="5" class="text-center text-muted">No subscriptions found.
+                                                        </td>
+                                                    </tr>
                                                 @endif
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                                 <div class="card-footer clearfix">
-                                    <a href="{{ route('subscriptions.index') }}" class="btn btn-sm btn-secondary float-end">View All Subscriptions</a>
+                                    <a href="{{ route('subscriptions.index') }}"
+                                        class="btn btn-sm btn-secondary float-end">View All Subscriptions</a>
                                 </div>
                             </div>
                         </div>
@@ -268,11 +277,11 @@
         @include('admin/layouts.footer')
     </div>
 
-    @endsection
+@endsection
 
 
 
-    @section('page-script')
+@section('page-script')
     <script>
         const ctx = document.getElementById('monthlyReportChart').getContext('2d');
         new Chart(ctx, {
@@ -280,19 +289,19 @@
             data: {
                 labels: @json($months),
                 datasets: [{
-                        label: 'Monthly Subscriptions',
-                        data: @json($subscriberTotals),
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Monthly Payments',
-                        data: @json($paymentTotals),
-                        backgroundColor: 'rgba(0, 192, 50, 0.6)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }
+                    label: 'Monthly Subscriptions',
+                    data: @json($subscriberTotals),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Monthly Payments',
+                    data: @json($paymentTotals),
+                    backgroundColor: 'rgba(0, 192, 50, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }
                 ]
             },
             options: {
@@ -305,7 +314,7 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value.toLocaleString(); // Format with commas
                             }
                         }
@@ -315,4 +324,4 @@
         });
     </script>
 
-    @endsection
+@endsection

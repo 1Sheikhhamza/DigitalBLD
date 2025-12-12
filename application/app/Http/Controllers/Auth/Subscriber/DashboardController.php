@@ -37,7 +37,7 @@ class DashboardController extends BaseController
             ->get()
             ->pluck('decision');
 
-            $events = Event::where('user_id', $this->subscriberId)->limit(4)->latest()->get();
+        $events = Event::where('user_id', $this->subscriberId)->limit(4)->latest()->get();
         $folders = $subscriber->folders()->limit(8)->get();
 
         return view('auth.subscribers.profile.dashboard', compact('events', 'folders', 'bookmarkedDecisions'));
@@ -60,15 +60,15 @@ class DashboardController extends BaseController
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'first_name'      => 'required|string|max:255',
-            'last_name'      => 'required|string|max:255',
-            'email'         => 'required|email|unique:subscribers,email,' . $this->subscriberId,
-            'mobile'        => 'nullable|string|max:20',
-            'address'   => 'nullable|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:subscribers,email,' . $this->subscriberId,
+            'mobile' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
             'registration_as' => 'required|in:Judiciary Person,Lawyer,Student,Other',
-            'dob'       => 'nullable|date',
+            'dob' => 'nullable|date',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:512',
-            'gender'    => 'nullable|in:Male,Female,Other'
+            'gender' => 'nullable|in:Male,Female,Other'
         ]);
 
 
@@ -97,8 +97,8 @@ class DashboardController extends BaseController
     public function updatePassword(Request $request)
     {
         $request->validate([
-            'current_password'      => 'required',
-            'new_password'          => 'required|min:8|confirmed',
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
         ]);
 
         $user = auth('subscriber')->user();
@@ -120,5 +120,10 @@ class DashboardController extends BaseController
         $subscriptions = auth('subscriber')->user()->subscriptions()->with('package')->latest()->get();
 
         return view('auth.subscribers.profile.my_subscription', compact('subscriptions'));
+    }
+
+    public function upgradePlan()
+    {
+        return view('auth.subscribers.upgrade_plan');
     }
 }

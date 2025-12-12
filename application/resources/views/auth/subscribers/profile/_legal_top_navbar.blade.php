@@ -34,10 +34,26 @@
                         <i class="bi bi-download"></i> Download
                     </a>
 
-                    <a href="#" class="action-link" id="summarize-btn" data-id="{{ $data->id }}" data-bs-toggle="modal"
-                        data-bs-target="#aiSummaryModal">
-                        <i class="bi bi-stars"></i> Summarize
-                    </a>
+                    @if(auth('subscriber')->user()->canAccessModule('ai.summary'))
+                        <a href="#" class="action-link" id="summarize-btn" data-id="{{ $data->id }}" data-bs-toggle="modal"
+                            data-bs-target="#aiSummaryModal">
+                            <i class="bi bi-stars"></i> Summarize
+                        </a>
+                    @else
+                        <a href="{{ route('subscriber.upgrade.plan') }}" class="action-link">
+                            <i class="bi bi-stars"></i> Summarize
+                        </a>
+                    @endif
+
+                    @if(auth('subscriber')->user()->canAccessModule('read.aloud'))
+                        <a href="#" class="action-link" id="read-aloud-btn" onclick="toggleReadAloud(event)">
+                            <i class="bi bi-volume-up"></i> <span id="read-aloud-text">Read Aloud</span>
+                        </a>
+                    @else
+                        <a href="{{ route('subscriber.upgrade.plan') }}" class="action-link">
+                            <i class="bi bi-volume-up"></i> <span id="read-aloud-text">Read Aloud</span>
+                        </a>
+                    @endif
                     <!-- <a href="{{ route('subscriber.legal-search.downloadPdf', $data->id) }}" class="action-link">
                         <i class="bi bi-download"></i> Download
                     </a> -->
@@ -57,8 +73,8 @@
                                 <i class="bi bi-pencil"></i> Edit My Note
                             </a>
                             <!-- <a href="{{ route('subscriber.shared.decisions') }}" class="action-link">
-                                            <i class="bi bi-share"></i> Shared with Me
-                                        </a> -->
+                                                            <i class="bi bi-share"></i> Shared with Me
+                                                        </a> -->
                         @endif
                     @endif
                     @if(!$myDecision)

@@ -24,7 +24,8 @@ class CheckSubscriberPermission
             !$subscriber->hasModule($routeName) &&
             !$subscriber->hasAnyPermissionOnResource($routeName)
         ) {
-            abort(403, 'Unauthorized');
+            // abort(403, 'Unauthorized');
+            return redirect()->route('subscriber.upgrade.plan');
         }
 
         return $next($request);

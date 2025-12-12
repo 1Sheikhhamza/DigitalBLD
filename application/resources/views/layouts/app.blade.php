@@ -98,10 +98,11 @@
       line-height: 1;
     }
   </style>
+  @stack('styles')
 </head>
 
 <body class="index-page">
-  <header id="header" class="header d-flex align-items-center sticky-top">
+  <header id="header" class="header d-flex align-items-center sticky-top" style="z-index: 1020;">
     <!-- <div class="container position-relative d-flex align-items-center"> -->
     <div class="container position-relative">
 
@@ -149,50 +150,51 @@
           <nav id="navmenu" class="navmenu">
             <ul>
               @if(isset($pages))
-              @foreach($pages as $page)
-              <li class="{{ request()->is($page->slug) ? 'active' : '' }} {{ $page->children && $page->children->count() ? 'dropdown' : '' }}">
-                <a href="{{ getPageUrl($page) }}">
-                  <span>{{ $page->title }}</span>
-                  @if($page->children && $page->children->count())
-                  <i class="bi bi-chevron-down toggle-dropdown"></i>
-                  @endif
-                </a>
-
-                @if($page->children && $page->children->count())
-                <ul>
-                  @foreach($page->children as $child)
-                  <li class="{{ $child->children && $child->children->count() ? 'dropdown' : '' }}">
-                    <a href="{{ getPageUrl($child) }}">
-                      <span>{{ $child->title }}</span>
-                      @if($child->children && $child->children->count())
-                      <i class="bi bi-chevron-down toggle-dropdown"></i>
+                @foreach($pages as $page)
+                  <li
+                    class="{{ request()->is($page->slug) ? 'active' : '' }} {{ $page->children && $page->children->count() ? 'dropdown' : '' }}">
+                    <a href="{{ getPageUrl($page) }}">
+                      <span>{{ $page->title }}</span>
+                      @if($page->children && $page->children->count())
+                        <i class="bi bi-chevron-down toggle-dropdown"></i>
                       @endif
                     </a>
 
-                    @if($child->children && $child->children->count())
-                    <ul>
-                      @foreach($child->children as $subChild)
-                      <li>
-                        <a href="{{ getPageUrl($subChild) }}">
-                          {{ $subChild->title }}
-                        </a>
-                      </li>
-                      @endforeach
-                    </ul>
+                    @if($page->children && $page->children->count())
+                      <ul>
+                        @foreach($page->children as $child)
+                          <li class="{{ $child->children && $child->children->count() ? 'dropdown' : '' }}">
+                            <a href="{{ getPageUrl($child) }}">
+                              <span>{{ $child->title }}</span>
+                              @if($child->children && $child->children->count())
+                                <i class="bi bi-chevron-down toggle-dropdown"></i>
+                              @endif
+                            </a>
+
+                            @if($child->children && $child->children->count())
+                              <ul>
+                                @foreach($child->children as $subChild)
+                                  <li>
+                                    <a href="{{ getPageUrl($subChild) }}">
+                                      {{ $subChild->title }}
+                                    </a>
+                                  </li>
+                                @endforeach
+                              </ul>
+                            @endif
+                          </li>
+                        @endforeach
+                      </ul>
                     @endif
                   </li>
-                  @endforeach
-                </ul>
-                @endif
-              </li>
-              @endforeach
+                @endforeach
               @endif
 
               <li>
                 @auth('subscriber')
-                @include('auth.subscribers.layouts._profile')
+                  @include('auth.subscribers.layouts._profile')
                 @else
-                <a href="{{ route('subscriber.login') }}" class="login-btn">Login</a>
+                  <a href="{{ route('subscriber.login') }}" class="login-btn">Login</a>
                 @endauth
               </li>
 
@@ -230,10 +232,11 @@
   <script src="{{ asset('frontend/assets/vendor/waypoints/noframework.waypoints.js') }}"></script>
   <script src="{{ asset('frontend/assets/vendor/swiper/swiper-bundle.min.js') }}"></script>
   <script src="{{ asset('frontend/assets/js/main.js') }}"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
   <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
       $(".datepicker").datepicker({
         dateFormat: "yy-mm-dd",
         changeMonth: true,
@@ -246,25 +249,25 @@
 
   <script>
     // Disable right-click
-    document.addEventListener('contextmenu', function(e) {
+    document.addEventListener('contextmenu', function (e) {
       e.preventDefault();
     });
 
     // Disable text selection
-    document.addEventListener('selectstart', function(e) {
+    document.addEventListener('selectstart', function (e) {
       e.preventDefault();
     });
-    document.addEventListener('copy', function(e) {
+    document.addEventListener('copy', function (e) {
       e.preventDefault();
     });
 
     // Disable drag
-    document.addEventListener('dragstart', function(e) {
+    document.addEventListener('dragstart', function (e) {
       e.preventDefault();
     });
 
     // Disable common keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       // Block F12 (DevTools)
       if (e.key === "F12") {
         e.preventDefault();
@@ -291,7 +294,7 @@
       }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       document.body.style.userSelect = 'none';
       document.body.style.webkitUserSelect = 'none';
       document.body.style.msUserSelect = 'none';

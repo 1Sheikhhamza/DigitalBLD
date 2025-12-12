@@ -78,6 +78,13 @@
                             </a>
                         </div>
 
+                        <div class="service-card">
+                            <a href="{{ route('ai.research') }}">
+                                <i class="bi bi-robot"></i>
+                                <span>AI Research</span>
+                            </a>
+                        </div>
+
 
                         @if(auth('subscriber')->user()->hasAnyPermissionOnResource('my-folder'))
                             <div class="service-card">

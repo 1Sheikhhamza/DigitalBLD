@@ -24,13 +24,15 @@ class CheckPermission
 
         // Map controller action names to permission actions
         $map = [
-            'index'   => 'list',
-            'show'    => 'view',
-            'create'  => 'create',
-            'store'   => 'create',
-            'edit'    => 'edit',
-            'update'  => 'edit',
+            'index' => 'list',
+            'show' => 'view',
+            'create' => 'create',
+            'store' => 'create',
+            'edit' => 'edit',
+            'update' => 'edit',
             'destroy' => 'delete',
+            'suggestions' => 'list',
+            'export' => 'list',
         ];
 
         $permission = null;
