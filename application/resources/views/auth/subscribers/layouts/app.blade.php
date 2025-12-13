@@ -21,6 +21,48 @@
   <link rel="icon" type="image/png" href="{{ url('assets/img/favicon.png') }}" sizes="192x192">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url('assets/img/favicon.png') }}">
   @stack('styles')
+  <style>
+    @media print {
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        .navbar,
+        .announcement-bar,
+        #chat-floating-btn,
+        #chat-widget,
+        .print-btn-container,
+        footer,
+        .footer {
+            display: none !important;
+        }
+        body {
+            background: white;
+            color: black;
+            font-size: 11pt; /* Slightly smaller for better fit */
+        }
+        a {
+            text-decoration: none;
+            color: black;
+        }
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #ddd; /* Cleaner look */
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        h4 {
+            margin-top: 0;
+            padding-top: 10px;
+        }
+    }
+  </style>
 </head>
 
 <body>

@@ -291,6 +291,7 @@ class LegalSearchController extends BaseController
 
             // Previous: Same volume, Earlier page (or same page but lower ID)
             $previousDecision = OCRExtraction::where('volume_id', $data->volume_id)
+                ->where('division', $data->division)
                 ->where(function ($query) use ($currentStartPage, $id) {
                     $query->whereRaw('CAST(starting_page_no AS UNSIGNED) < ?', [$currentStartPage])
                         ->orWhere(function ($q) use ($currentStartPage, $id) {
@@ -304,6 +305,7 @@ class LegalSearchController extends BaseController
 
             // Next: Same volume, Later page (or same page but higher ID)
             $nextDecision = OCRExtraction::where('volume_id', $data->volume_id)
+                ->where('division', $data->division)
                 ->where(function ($query) use ($currentStartPage, $id) {
                     $query->whereRaw('CAST(starting_page_no AS UNSIGNED) > ?', [$currentStartPage])
                         ->orWhere(function ($q) use ($currentStartPage, $id) {
@@ -627,7 +629,9 @@ class LegalSearchController extends BaseController
                 return $item;
             });
 
-        return view('auth.subscribers.profile.index', compact('volumeData', 'appellateDecisions', 'highCourtDecisions'));
+        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+
+        return view('auth.subscribers.profile.index', compact('volumeData', 'appellateDecisions', 'highCourtDecisions', 'allVolumes'));
     }
 
     private function cleanPartyName($name)
@@ -719,7 +723,9 @@ class LegalSearchController extends BaseController
             ->orderBy('id', 'ASC')
             ->paginate(30);
 
-        return view('auth.subscribers.profile.appellate', compact('volumeData', 'appellateDecisions'));
+        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+
+        return view('auth.subscribers.profile.appellate', compact('volumeData', 'appellateDecisions', 'allVolumes'));
     }
 
     public function legalDecisionHighCourt($volume_id)
@@ -735,6 +741,8 @@ class LegalSearchController extends BaseController
             ->orderBy('id', 'ASC')
             ->paginate(30);
 
-        return view('auth.subscribers.profile.highcourt', compact('volumeData', 'highCourtDecisions'));
+        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+
+        return view('auth.subscribers.profile.highcourt', compact('volumeData', 'highCourtDecisions', 'allVolumes'));
     }
 }
