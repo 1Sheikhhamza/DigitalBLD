@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\UserManualController;
 use App\Http\Controllers\Admin\PackageFeatureController;
 use App\Http\Controllers\Admin\PackageFeatureModuleController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\DemoBookingController;
 
 // Frontend
 use App\Http\Controllers\Frontend\HomeController;
@@ -67,6 +68,7 @@ Route::get('/preview-judgment/{id}', [HomeController::class, 'previewJudgment'])
 Route::get('/preview-judgment/{id}/print/{type?}', [HomeController::class, 'previewPrint'])->name('preview.judgment.print');
 
 Route::post('/inquiry', [HomeController::class, 'submitInquiry'])->name('inquiry.submit');
+Route::post('/book-demo', [DemoBookingController::class, 'store'])->name('book.demo');
 Route::post('/project-owner', [HomeController::class, 'storeProjectOwner'])->name('project-owner.store');
 
 // Service
@@ -432,6 +434,7 @@ Route::prefix('admin')->middleware('auth:administration')->group(function () {
 
         // Announcements
         Route::resource('announcements', \App\Http\Controllers\Admin\AnnouncementController::class, ['as' => 'admin']);
+        Route::get('demo-bookings', [DemoBookingController::class, 'index'])->name('demo_bookings.index');
 
         // Chat
         Route::controller(\App\Http\Controllers\Admin\ChatController::class)->prefix('chats')->name('admin.chats.')->group(function () {

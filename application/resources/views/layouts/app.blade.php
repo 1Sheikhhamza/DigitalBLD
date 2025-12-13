@@ -190,6 +190,13 @@
                 @endforeach
               @endif
 
+
+              <li>
+                <a href="#" class="btn btn-primary text-white ms-2" data-bs-toggle="modal"
+                  data-bs-target="#bookDemoModal"
+                  style="background-color: #0d6efd; padding: 8px 20px; border-radius: 5px;">Book a Demo</a>
+              </li>
+
               <li>
                 @auth('subscriber')
                   @include('auth.subscribers.layouts._profile')
@@ -197,6 +204,7 @@
                   <a href="{{ route('subscriber.login') }}" class="login-btn">Login</a>
                 @endauth
               </li>
+
 
             </ul>
 
@@ -336,7 +344,100 @@
 
   @show
 
+  <!-- Book a Demo Modal -->
+  <div class="modal fade" id="bookDemoModal" tabindex="-1" aria-labelledby="bookDemoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bookDemoModalLabel">Book a Demo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body row">
+          <div class="col-md-6 d-none d-md-block"
+            style="background-image: url('{{ asset('frontend/assets/img/hero-bg.jpg') }}'); background-size: cover; background-position: center; min-height: 400px; border-radius: 5px 0 0 5px;">
+            <!-- Optional: Add an image here or use background image --> <img
+              src="{{ asset('frontend/assets/img/demo-booking.jpg') }}" class="img-fluid"
+              style="object-fit:cover; height: 100%; width: 100%; border-radius: 12px;" alt="Demo Image">
+          </div>
+          <div class="col-md-6 p-4">
+            <form id="bookDemoForm">
+              @csrf
+              <div class="mb-3">
+                <label for="demoName" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="demoName" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="demoEmail" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="demoEmail" name="email" required>
+              </div>
+              <div class="mb-3">
+                <label for="demoPhone" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="demoPhone" name="phone" required>
+              </div>
+              <div class="row">
+                <div class="col-6 mb-3">
+                  <label for="demoDate" class="form-label">Date</label>
+                  <input type="date" class="form-control" id="demoDate" name="booking_date" required>
+                </div>
+                <div class="col-6 mb-3">
+                  <label for="demoTime" class="form-label">Time</label>
+                  <input type="time" class="form-control" id="demoTime" name="booking_time" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="demoLocation" class="form-label">Location (Optional)</label>
+                <input type="text" class="form-control" id="demoLocation" name="location">
+              </div>
+              <div class="mb-3">
+                <label for="demoDetails" class="form-label">Additional Notes</label>
+                <textarea class="form-control" id="demoDetails" name="details" rows="3"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Book Demo</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   @stack('scripts')
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    $(document).ready(function () {
+      $('#bookDemoForm').on('submit', function (e) {
+        e.preventDefault();
+        let formData = $(this).serialize();
+
+        $.ajax({
+          url: "{{ route('book.demo') }}",
+          type: "POST",
+          data: formData,
+          success: function (response) {
+            $('#bookDemoModal').modal('hide');
+            $('#bookDemoForm')[0].reset();
+            Swal.fire({
+              icon: 'success',
+              title: 'Success',
+              text: response.message,
+            });
+          },
+          error: function (xhr) {
+            let errors = xhr.responseJSON.errors;
+            let errorMessage = 'Something went wrong. Please try again.';
+            if (errors) {
+              errorMessage = Object.values(errors)[0][0];
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: errorMessage,
+            });
+          }
+        });
+      });
+    });
+  </script>
 
 </body>
 

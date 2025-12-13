@@ -1,5 +1,6 @@
 @include('admin.layouts.topbar')
-<aside class="app-sidebar shadow" data-bs-theme="dark" style="background: linear-gradient(180deg, #0052cc 0%, #003399 100%) !important;">
+<aside class="app-sidebar shadow" data-bs-theme="dark"
+    style="background: linear-gradient(180deg, #0052cc 0%, #003399 100%) !important;">
     <div class="sidebar-brand">
         <a href="{{ route('admin.dashboard') }}" class="brand-link">
             <img src="{{ asset('frontend/assets/img/logo.png') }}" alt="Digital Bangladesh Legal Decisions Logo"
@@ -440,6 +441,14 @@
                 @endif
 
 
+                {{-- Demo Bookings --}}
+                <li class="nav-item">
+                    <a href="{{ route('demo_bookings.index') }}" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Demo Bookings</p>
+                    </a>
+                </li>
+
                 {{-- Client --}}
                 @if(hasAnyPermissionOnResource('clients'))
                     <li class="nav-item">
@@ -500,58 +509,58 @@
                 {{-- Career --}}
                 @if(hasAnyPermissionOnResource('careers'))
                     <!-- <li class="nav-item">
-                                    <a href="#" class="nav-link">
-                                        <i class="nav-icon bi bi-file"></i>
-                                        <p>Career Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        @can('careers.view')
-                                        <li class="nav-item">
-                                            <a href="{{ route('careers.index') }}" class="nav-link">
-                                                <i class="nav-icon bi bi-list"></i>
-                                                <p>Career List</p>
-                                            </a>
-                                        </li>
-                                        @endcan
-                                        @can('careers.create')
-                                        <li class="nav-item">
-                                            <a href="{{ route('careers.create') }}" class="nav-link">
-                                                <i class="nav-icon bi bi-plus-circle"></i>
-                                                <p>New Career</p>
-                                            </a>
-                                        </li>
-                                        @endcan
-                                    </ul>
-                                </li> -->
+                                        <a href="#" class="nav-link">
+                                            <i class="nav-icon bi bi-file"></i>
+                                            <p>Career Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
+                                        </a>
+                                        <ul class="nav nav-treeview">
+                                            @can('careers.view')
+                                            <li class="nav-item">
+                                                <a href="{{ route('careers.index') }}" class="nav-link">
+                                                    <i class="nav-icon bi bi-list"></i>
+                                                    <p>Career List</p>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                            @can('careers.create')
+                                            <li class="nav-item">
+                                                <a href="{{ route('careers.create') }}" class="nav-link">
+                                                    <i class="nav-icon bi bi-plus-circle"></i>
+                                                    <p>New Career</p>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                        </ul>
+                                    </li> -->
                 @endif
 
 
                 {{-- Inquiry --}}
                 @if(hasAnyPermissionOnResource('inquiries'))
                     <!-- <li class="nav-item">
-                                    <a href="#" class="nav-link">
-                                        <i class="nav-icon bi bi-question-lg"></i>
-                                        <p>Inquiry Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        @can('inquiries.view')
-                                        <li class="nav-item">
-                                            <a href="{{ route('inquiries.index') }}" class="nav-link">
-                                                <i class="nav-icon bi bi-list"></i>
-                                                <p>Inquiry List</p>
-                                            </a>
-                                        </li>
-                                        @endcan
-                                        @can('inquiries.create')
-                                        <li class="nav-item">
-                                            <a href="{{ route('inquiries.create') }}" class="nav-link">
-                                                <i class="nav-icon bi bi-plus-circle"></i>
-                                                <p>New Inquiry</p>
-                                            </a>
-                                        </li>
-                                        @endcan
-                                    </ul>
-                                </li> -->
+                                        <a href="#" class="nav-link">
+                                            <i class="nav-icon bi bi-question-lg"></i>
+                                            <p>Inquiry Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
+                                        </a>
+                                        <ul class="nav nav-treeview">
+                                            @can('inquiries.view')
+                                            <li class="nav-item">
+                                                <a href="{{ route('inquiries.index') }}" class="nav-link">
+                                                    <i class="nav-icon bi bi-list"></i>
+                                                    <p>Inquiry List</p>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                            @can('inquiries.create')
+                                            <li class="nav-item">
+                                                <a href="{{ route('inquiries.create') }}" class="nav-link">
+                                                    <i class="nav-icon bi bi-plus-circle"></i>
+                                                    <p>New Inquiry</p>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                        </ul>
+                                    </li> -->
                 @endif
 
                 {{-- Team --}}
@@ -759,7 +768,8 @@
         </nav>
     </div>
     <div class="sidebar-custom p-3 border-top border-secondary">
-        <a href="#" class="btn btn-link link-light w-100 d-flex align-items-center justify-content-center" data-lte-toggle="sidebar">
+        <a href="#" class="btn btn-link link-light w-100 d-flex align-items-center justify-content-center"
+            data-lte-toggle="sidebar">
             <i class="bi bi-arrow-bar-left fs-4" data-lte-icon="collapse"></i>
             <i class="bi bi-arrow-bar-right fs-4" data-lte-icon="expand" style="display: none;"></i>
         </a>
