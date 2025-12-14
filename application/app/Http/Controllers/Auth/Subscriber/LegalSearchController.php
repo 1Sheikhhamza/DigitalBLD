@@ -133,14 +133,24 @@ class LegalSearchController extends BaseController
             // For now, simpler approach: Get IDs from Scout, then continue building Eloquent query.
             // This allows mixing Scout text search with complex SQL filters (like year ranges etc which might not be indexed yet).
 
-            $keys = OCRExtraction::search($keyword)->keys();
-            $query->whereIn('id', $keys);
+            try {
+                $keys = OCRExtraction::search($keyword)->keys();
+                $query->whereIn('id', $keys);
 
-            // Maintain relevance order from Scout?
-            // If we use whereIn, order is lost in MySQL unless we use orderByRaw field(id, ids...).
-            if ($keys->isNotEmpty()) {
-                $ids = $keys->implode(',');
-                $query->orderByRaw("FIELD(id, $ids)");
+                // Maintain relevance order from Scout?
+                // If we use whereIn, order is lost in MySQL unless we use orderByRaw field(id, ids...).
+                if ($keys->isNotEmpty()) {
+                    $ids = $keys->implode(',');
+                    $query->orderByRaw("FIELD(id, $ids)");
+                }
+            } catch (\Exception $e) {
+                // Fallback to SQL search if Meilisearch is down
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('judgment', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('key_words', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('parties', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('case_no', 'LIKE', '%' . $keyword . '%');
+                });
             }
         }
 
