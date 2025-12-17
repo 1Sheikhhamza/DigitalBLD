@@ -128,20 +128,26 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('auth.subscribers.layouts.app', function ($view) {
             $user = auth('subscriber')->user();
-            $announcements = \App\Models\Announcement::where('is_active', true)
-                ->where(function ($query) use ($user) {
-                    $query->where('target_type', 'all')
-                        ->orWhere('user_id', $user->id);
-                })
-                ->latest()
-                ->get();
 
-            // Reminder Logic
-            $today = now()->format('Y-m-d');
-            $activeReminders = \App\Models\Event::where('user_id', $user->id)
-                ->whereDate('start_date', $today)
-                ->where('is_seen', false)
-                ->get();
+            if ($user) {
+                $announcements = \App\Models\Announcement::where('is_active', true)
+                    ->where(function ($query) use ($user) {
+                        $query->where('target_type', 'all')
+                            ->orWhere('user_id', $user->id);
+                    })
+                    ->latest()
+                    ->get();
+
+                // Reminder Logic
+                $today = now()->format('Y-m-d');
+                $activeReminders = \App\Models\Event::where('user_id', $user->id)
+                    ->whereDate('start_date', $today)
+                    ->where('is_seen', false)
+                    ->get();
+            } else {
+                $announcements = collect();
+                $activeReminders = collect();
+            }
 
             $view->with('announcements', $announcements)
                 ->with('activeReminders', $activeReminders);

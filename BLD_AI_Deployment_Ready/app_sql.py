@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import requests  # Replaces google.generativeai
 import mysql.connector
 from mysql.connector import Error
 import os
@@ -29,12 +29,67 @@ st.set_page_config(
 # Load environment variables
 load_dotenv()
 
-# API Key configuration with fallback
-api_key = os.getenv('GOOGLE_API_KEY')
+# API Key configuration
+api_key = os.getenv('GEMINI_API_KEY')
 if not api_key:
-    api_key = "AIzaSyB_woqxl5V9HRhTmBw6B-TvU6Pp-hxhSIg"  # Fallback key
+    api_key = os.getenv('GOOGLE_API_KEY')
+if not api_key:
+    st.error("Missing API Key! Please set GEMINI_API_KEY in .env file.")
+    st.stop()
 
-genai.configure(api_key=api_key)
+# Direct API Helper
+import time
+
+def call_gemini_api(prompt, model="gemini-2.0-flash-001", max_tokens=1000):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    # Disable safety filters for legal/court content
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+    ]
+    
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "safetySettings": safety_settings,
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": max_tokens
+        }
+    }
+    
+    for attempt in range(3):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data['candidates'][0]['content']['parts'][0]['text']
+                except (KeyError, IndexError):
+                    logger.error(f"Malformed Response: {json.dumps(data)}")
+                    if "usageMetadata" in data and "candidates" not in data:
+                        return "Error: AI blocked the response content."
+                    return None
+                
+            elif response.status_code == 429:
+                wait_time = 2**(attempt+1)
+                logger.warning(f"Rate limit (429). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+                
+            else:
+                logger.error(f"API Error {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Request failed: {e}")
+            return None
+            
+    return None
 
 # Initialize session state
 if 'messages' not in st.session_state:
@@ -198,6 +253,7 @@ IMPORTANT RULES:
 18. CONVERT DATES: Transform natural language dates like "17th March, 1982" into 'YYYY-MM-DD' format (e.g., '1982-03-17') for the `decided_on` column.
 19. LOGICAL OPERATORS: When a user specifies multiple conditions (e.g., "Judge X AND Date Y"), use the `AND` operator to strictly require both.
 20. CLEAN NAMES: When searching for Judges or Parties, REMOVE titles like 'C.J.', 'Justice', 'Mr.', 'Mrs.', 'Dr.', 'Advocate' and punctuation. Only search for the core name (e.g., "Kemaluddin Hossain C.J," -> `judge_name LIKE '%Kemaluddin Hossain%'`).
+21. SUMMARY REQUESTS: If user asks for "summary", "gist", "brief", or "what happened", you MUST include the `judgment` column in your SELECT statement.
 
 QUERY EXAMPLES:
 
@@ -252,6 +308,10 @@ SQL: SELECT case_no, parties, book_volume, starting_page_no, ending_page_no, sub
 Q: "Natural justice cases"
 SQL: SELECT case_no, parties, subject, key_words, result FROM ocr_extractions WHERE subject LIKE '%natural justice%' OR key_words LIKE '%natural justice%' LIMIT 5;
 
+Q: "Summarize case 582 of 2001"
+SQL: SELECT case_no, parties, subject, result, judgment FROM ocr_extractions WHERE case_no LIKE '%582%' AND case_no LIKE '%2001%' LIMIT 1;
+
+
 Question: {question}
 SQL:"""
     
@@ -280,17 +340,14 @@ SQL:"""
     final_prompt = f"Question: {question}{prompt_hints}\n\n{schema_info}"
     
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
-        response = model.generate_content(
-            final_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.1,  # Low temperature for deterministic SQL
-                max_output_tokens=200
-            )
-        )
+        sql_response = call_gemini_api(final_prompt, max_tokens=200)
+        if not sql_response:
+             logger.error("Empty response from API")
+             return None
+             
         st.session_state.api_calls += 1
         
-        sql = response.text.strip()
+        sql = sql_response.strip()
         sql = sql.replace('```sql', '').replace('```', '').strip()
     
         # Force inclusion of 'id' and 'jurisdiction' columns
@@ -454,16 +511,12 @@ Judgment excerpt:
 Answer (be concise):"""
             
             try:
-                model = genai.GenerativeModel("gemini-2.0-flash-exp")
-                response = model.generate_content(
-                    prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.3,
-                        max_output_tokens=150  # Short answers only
-                    )
-                )
+                answer_text = call_gemini_api(prompt, max_tokens=150)
+                if not answer_text:
+                     return "Could not find answer in available cases."
+                     
                 st.session_state.api_calls += 1
-                return f"📄 **From Judgment Search:**\n\n{response.text.strip()}\n\n*Case: {case_no}*"
+                return f"📄 **From Judgment Search:**\n\n{answer_text.strip()}\n\n*Case: {case_no}*"
             except Exception as e:
                 logger.error(f"Fallback answer error: {e}")
                 return "Could not find answer in available cases."
@@ -518,6 +571,12 @@ ANSWERING RULES:
    - **MANDATORY**: You MUST Display **Volume**, **Year**, **Page**, **Related Acts**, and **Sections** if available.
    - Bold the field labels (e.g., **Case No:**).
 
+3. **SUMMARIZATION** (e.g. "Give me the summary", "What is the gist"):
+   - Ignore the "MANDATORY" metadata rule.
+   - Focus purely on summarizing the `judgment` text if available.
+   - Structure the answer as: **Facts**, **Arguments**, **Decision**.
+   - Keep it concise and readable.
+
 IMPORTANT CONTEXT: 
 - If 'petitioners' field is present, it contains the advocates/lawyers for the petitioners
 - If 'respondent' field is present, it contains the advocates/lawyers for the respondents
@@ -532,17 +591,13 @@ Answer:"""
         if st.session_state.api_calls >= 5000:
             st.warning("High API usage detected. Please use responsibly.")
             
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=8000  # Increased for full details
-            )
-        )
+        answer_text = call_gemini_api(prompt, max_tokens=2000)
+        if not answer_text:
+             return f"Found {len(results)} case(s) but couldn't generate answer."
+             
         st.session_state.api_calls += 1
         
-        return response.text.strip()
+        return answer_text.strip()
     except Exception as e:
         logger.error(f"Answer generation error: {e}")
         return f"Found {len(results)} case(s) but couldn't generate answer."
@@ -959,16 +1014,41 @@ if col_sources:
         else:
             st.info("Search for cases to see sources here.")
 
+
+
 # Chat input (Global Bottom)
 if prompt := st.chat_input("Ask about a legal case..."):
+    # Pre-process: Handle "Case 1", "Case 2" selection from previous results
+    processed_prompt = prompt
+    
+    # 1. Handle Selection (Case 1, Case 2...)
+    match_selection = re.search(r'\b(?:case|result|number)\s+(\d+)', prompt, re.IGNORECASE)
+    if match_selection and st.session_state.latest_results:
+        try:
+            idx = int(match_selection.group(1)) - 1
+            if 0 <= idx < len(st.session_state.latest_results):
+                selected_case = st.session_state.latest_results[idx]
+                case_no = selected_case.get('case_no')
+                if case_no:
+                    st.info(f"Selecting Case {idx+1}: {case_no}")
+                    processed_prompt = f"Give me details for case {case_no}. Original Request: {prompt}"
+                    st.session_state.current_case = case_no
+        except Exception as e:
+            logger.error(f"Selection error: {e}")
+
+
+
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
     # Generate SQL
+    if not processed_prompt:
+        processed_prompt = prompt # Fallback
+        
     with st.spinner("Generating SQL query..."):
-        sql = generate_sql(prompt)
+        sql = generate_sql(processed_prompt)
     
         if sql:
             # Execute SQL

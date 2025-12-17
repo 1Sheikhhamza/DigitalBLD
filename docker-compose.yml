@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Laravel App (PHP-FPM)
+  app:
+    build:
+      context: ./application
+      dockerfile: Dockerfile
+    image: digitalbld-app
+    container_name: digitalbld-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./application:/var/www
+    depends_on:
+      - db
+      - meilisearch
+    networks:
+      - bld-network
+
+  # Web Server (Nginx)
+  web:
+    image: nginx:alpine
+    container_name: digitalbld-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./application:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - bld-network
+
+  # AI Assistant (Streamlit)
+  streamlit:
+    build:
+      context: ./BLD_AI_Deployment_Ready
+      dockerfile: Dockerfile
+    image: digitalbld-ai
+    container_name: digitalbld-ai
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./BLD_AI_Deployment_Ready:/app
+    depends_on:
+      - db
+    networks:
+      - bld-network
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=bldlegalized_bld
+      - DB_USER=root
+      - DB_PASSWORD=root
+
+  # Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: digitalbld-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: bldlegalized_bld
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - bld-network
+
+  # Search Engine (Meilisearch)
+  meilisearch:
+    image: getmeili/meilisearch:v1.3
+    container_name: digitalbld-meili
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=masterKey
+    volumes:
+      - meili_data:/meili_data
+    networks:
+      - bld-network
+
+networks:
+  bld-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+  meili_data:
