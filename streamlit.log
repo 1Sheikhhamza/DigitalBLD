@@ -1,0 +1,21 @@
+/Users/sheikhhamza/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.68.112:8501
+  External URL: http://103.72.212.62:8501
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+            
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, subject, result, judgment FROM ocr_extractions WHERE related_act_order_rule LIKE '%Constitution%' AND sections_subsections LIKE '%102%' LIMIT 20;
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, content, file_path, file_name, status, published_month, key_words, judgment, homepage FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' LIMIT 20
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, judgment FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' LIMIT 1;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%'
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, content FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' AND sections_subsections LIKE '%102(2)(a)%' LIMIT 20;

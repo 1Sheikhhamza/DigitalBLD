@@ -100,6 +100,8 @@ if 'db_initialized' not in st.session_state:
     st.session_state.db_initialized = False
 if 'current_case' not in st.session_state:
     st.session_state.current_case = None
+if 'current_case_id' not in st.session_state:
+    st.session_state.current_case_id = None
 if 'latest_results' not in st.session_state:
     st.session_state.latest_results = []
 if 'current_parties' not in st.session_state:
@@ -254,6 +256,7 @@ IMPORTANT RULES:
 19. LOGICAL OPERATORS: When a user specifies multiple conditions (e.g., "Judge X AND Date Y"), use the `AND` operator to strictly require both.
 20. CLEAN NAMES: When searching for Judges or Parties, REMOVE titles like 'C.J.', 'Justice', 'Mr.', 'Mrs.', 'Dr.', 'Advocate' and punctuation. Only search for the core name (e.g., "Kemaluddin Hossain C.J," -> `judge_name LIKE '%Kemaluddin Hossain%'`).
 21. SUMMARY REQUESTS: If user asks for "summary", "gist", "brief", or "what happened", you MUST include the `judgment` column in your SELECT statement.
+22. CONTEXT RETENTION: IF a case context is set (e.g., "[CONTEXT: Current case is X]") AND the user query is not explicitly a new search (i.e. does not contain "find cases", "search for", "show me cases"), YOU MUST restrict your SQL to that case using `WHERE case_no LIKE '%X%'`. Treat "which page?", "what date?", "who is judge?" as follow-ups about the CURRENT case.
 
 QUERY EXAMPLES:
 
@@ -333,11 +336,17 @@ SQL:"""
          prompt_hints += f"\n[SYSTEM HINT: Cleaned name query: '{cleaned_q}'. Search for this name/parties.]"
 
     if st.session_state.current_case:
-        prompt_hints += f"\n[CONTEXT: Current case is {st.session_state.current_case}]"
+        prompt_hints += f"\n[CONTEXT: Current case is {st.session_state.current_case}. User likely asks about THIS case. Restrict SQL to `case_no LIKE '%{st.session_state.current_case}%'` unless asked to search new.]"
     if st.session_state.current_parties:
         prompt_hints += f"\n[CONTEXT: Current parties are {st.session_state.current_parties}]"
     
-    final_prompt = f"Question: {question}{prompt_hints}\n\n{schema_info}"
+    # PROMPT AUGMENTATION: Force context into the question
+    final_question = question
+    if st.session_state.current_case and "search" not in question.lower() and "find" not in question.lower():
+        final_question = f"[Context: Regarding {st.session_state.current_case}] {question}"
+
+    final_prompt = f"Question: {final_question}{prompt_hints}\n\n{schema_info}"
+
     
     try:
         sql_response = call_gemini_api(final_prompt, max_tokens=200)
@@ -349,6 +358,21 @@ SQL:"""
         
         sql = sql_response.strip()
         sql = sql.replace('```sql', '').replace('```', '').strip()
+
+        # SQL ENFORCER: Programmatically force context if users asks follow-up
+        if st.session_state.current_case and "search" not in final_question.lower() and "find" not in final_question.lower():
+             # If the AI generated a wildcard or broad search, we clamp it down
+             if st.session_state.current_case not in sql:
+                 logger.info(f"SQL ENFORCER: Injecting context {st.session_state.current_case} into SQL")
+                 if "WHERE" in sql.upper():
+                     sql = re.sub(r'WHERE', f"WHERE case_no LIKE '%{st.session_state.current_case}%' AND ", sql, count=1, flags=re.IGNORECASE)
+                 else:
+                     # Add WHERE clause if missing (unlikely but safe)
+                     if "LIMIT" in sql.upper():
+                         sql = re.sub(r'LIMIT', f"WHERE case_no LIKE '%{st.session_state.current_case}%' LIMIT", sql, count=1, flags=re.IGNORECASE)
+                     else:
+                         sql += f" WHERE case_no LIKE '%{st.session_state.current_case}%'"
+
     
         # Force inclusion of 'id' and 'jurisdiction' columns
         if "SELECT" in sql.upper():
@@ -523,14 +547,36 @@ Answer (be concise):"""
         else:
             return "No cases found matching your query. Try rephrasing or ask about a different case."
     
-    # Update context if we found a case
+    # Update context if we found a case (Context Locking)
+    # Only update if no context exists OR user explicitly requested a new search
+    update_context = False
     if results and len(results) > 0:
+         if not st.session_state.current_case:
+             update_context = True # First search
+         elif "search" in question.lower() or "find" in question.lower() or "show" in question.lower():
+             update_context = True # Explicit new search
+             
+    if update_context and results:
         first_result = results[0]
         if 'case_no' in first_result and first_result['case_no']:
             st.session_state.current_case = first_result['case_no']
+        if 'id' in first_result:
+            st.session_state.current_case_id = first_result['id']
         if 'parties' in first_result and first_result['parties']:
             st.session_state.current_parties = first_result['parties']
     
+    # Calculate Volume based on Year (Volume = Year - 1980)
+    for result in results:
+        try:
+            if 'published_year' in result and result['published_year']:
+                year = int(result['published_year'])
+                if year > 1980:
+                    result['book_volume'] = year - 1980
+        except (ValueError, TypeError):
+            pass
+
+    
+
     # Format results for AI (token-efficient)
     results_text = ""
     # Smart context management: If many results, strip heavy text fields to avoid token errors
@@ -552,6 +598,12 @@ Answer (be concise):"""
                 # if isinstance(value, str) and len(value) > 300:
                 #     value = value[:300] + "..."
                 results_text += f"{key}: {value}\n"
+        
+        # INJECT LINK FOR EVERY CASE so AI can display it
+        if 'id' in result:
+             link = f"http://127.0.0.1:8000/subscriber/singleDecision/{result['id']}"
+             results_text += f"View Full Case Link: {link}\n"
+
     
     # Answer prompt
     prompt = f"""Answer the question based on the database results.
@@ -559,6 +611,7 @@ Answer (be concise):"""
 IMPORTANT FORMATTING:
 - **PAGE FORMAT**: Combine starting and ending pages into a single line: **Page:** [start] to [end] (e.g. **Page:** 23 to 25).
 - **CLEAN DATA**: Remove all HTML tags (<p>, <br>).
+- **BULLET POINTS**: You MUST use a bulleted list format for case details. Do NOT put them on one line.
 
 ANSWERING RULES:
 1. **SPECIFIC QUESTIONS** (e.g., "Who is the judge?", "What is the date?"):
@@ -568,7 +621,17 @@ ANSWERING RULES:
 
 2. **GENERAL SEARCH / DETAILS** (e.g., "Tell me about case X", "Find cases about land"):
    - Provide a structured summary with bullet points.
+   - **Structure:**
+     *   **Case No:** ...
+     *   **Volume:** ...
+     *   **Year:** ...
+     *   **Page:** ...
+     *   **Related Acts:** ...
+     *   **Subject:** ...
+     *   [🔗 **View Full Case**](Link from data)
+   - **SEPARATOR**: You MUST put a horizontal line `---` after each case to separate them.
    - **MANDATORY**: You MUST Display **Volume**, **Year**, **Page**, **Related Acts**, and **Sections** if available.
+   - **MANDATORY**: You MUST include the [🔗 View Full Case](Link) for EACH case you list. Use the 'View Full Case Link' provided in the data.
    - Bold the field labels (e.g., **Case No:**).
 
 3. **SUMMARIZATION** (e.g. "Give me the summary", "What is the gist"):
@@ -597,6 +660,11 @@ Answer:"""
              
         st.session_state.api_calls += 1
         
+        # Append Source Link
+        if st.session_state.current_case_id:
+             # MUST use absolute URL to point to Laravel port 8000, not Streamlit 8501
+             answer_text += f"\n\n[🔗 **View Full Case**](http://127.0.0.1:8000/subscriber/singleDecision/{st.session_state.current_case_id})"
+
         return answer_text.strip()
     except Exception as e:
         logger.error(f"Answer generation error: {e}")
