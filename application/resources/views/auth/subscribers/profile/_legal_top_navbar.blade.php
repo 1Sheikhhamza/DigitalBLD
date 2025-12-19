@@ -24,8 +24,8 @@
             </div>
 
             <!-- Center: Action Buttons -->
-            <div class="col-md-9 col-12">
-                <div class="text-center d-flex align-items-center justify-content-center">
+            <div class="col-md col-12">
+                <div class="text-center d-flex align-items-center justify-content-center flex-wrap gap-1">
                     <a href="{{ route('subscriber.legal-search.print', [$data->id, 'print']) }}" class="action-link"
                         target="_blank">
                         <i class="bi bi-printer"></i> Print
@@ -58,7 +58,6 @@
                         <i class="bi bi-download"></i> Download
                     </a> -->
                     <a href="#" class="action-link">
-                        <label class="me-1">Translator:</label>
                         <div id="google_translate_element"></div>
                     </a>
                     @if(!$myDecision)
@@ -73,8 +72,8 @@
                                 <i class="bi bi-pencil"></i> Edit My Note
                             </a>
                             <!-- <a href="{{ route('subscriber.shared.decisions') }}" class="action-link">
-                                                            <i class="bi bi-share"></i> Shared with Me
-                                                        </a> -->
+                                                                            <i class="bi bi-share"></i> Shared with Me
+                                                                        </a> -->
                         @endif
                     @endif
                     @if(!$myDecision)

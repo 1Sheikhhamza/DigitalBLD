@@ -12,6 +12,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from typing import Optional
 import chromadb
+import uuid
 from chromadb.utils import embedding_functions
 
 # Configure logging
@@ -110,6 +111,41 @@ if 'theme' not in st.session_state:
     st.session_state.theme = 'light'  # Always light mode
 if 'show_sources' not in st.session_state:
     st.session_state.show_sources = False
+if 'context_locked' not in st.session_state:
+    st.session_state.context_locked = False
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+if 'current_session_id' not in st.session_state:
+    st.session_state.current_session_id = str(uuid.uuid4())
+if 'history_loaded' not in st.session_state:
+    st.session_state.history_loaded = False
+
+# CHECK URL PARAMETERS FOR CONTEXT INJECTION (Integration point with Laravel)
+# Using st.query_params (Streamlit new versions) or experimental_get_query_params
+try:
+    query_params = st.query_params
+except:
+    query_params = st.experimental_get_query_params()
+
+if "case_id" in query_params:
+    case_id_param = query_params["case_id"]
+    # Handle list or string return type depending on version
+    if isinstance(case_id_param, list):
+         case_id_param = case_id_param[0]
+         
+    if st.session_state.current_case_id != case_id_param:
+        st.session_state.current_case_id = case_id_param
+        st.session_state.context_locked = True
+        # Clear previous chat if switching cases
+        st.session_state.messages = [] 
+        st.session_state.history_loaded = False # Force reload history for new case/session context if needed
+        logger.info(f"Context locked to Case ID: {case_id_param}")
+
+if "user_id" in query_params:
+    user_id_param = query_params["user_id"]
+    if isinstance(user_id_param, list):
+        user_id_param = user_id_param[0]
+    st.session_state.user_id = user_id_param
 
 # Database Config (Dual Mode: Cloud + Local)
 def get_db_config():
@@ -142,22 +178,96 @@ def get_db_connection():
 
 def init_database():
     """Check MySQL database connection"""
-    if st.session_state.db_initialized:
+    if st.session_state.db_initialized and not st.session_state.context_locked:
         return
     
     try:
         conn = get_db_connection()
         if conn and conn.is_connected():
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM ocr_extractions")
-            count = cursor.fetchone()[0]
-            logger.info(f"✅ Connected to MySQL database with {count} cases")
-            st.session_state.db_initialized = True
+            cursor = conn.cursor(dictionary=True)
+            
+            # If we have a locked context (case_id from URL), fetch that case IMMEDIATELY
+            if st.session_state.context_locked and st.session_state.current_case_id:
+                # Reuse the logic to fetch case details
+                cursor.execute(f"SELECT * FROM ocr_extractions WHERE id = {st.session_state.current_case_id}")
+                case_data = cursor.fetchone()
+                
+                if case_data:
+                    st.session_state.current_case = case_data['case_no']
+                    st.session_state.current_parties = case_data['parties']
+                    # Populate latest_results so the Sources panel shows this case
+                    case_data['source'] = 'context_locked'
+                    st.session_state.latest_results = [case_data]
+                    st.session_state.db_initialized = True
+                    logger.info(f"✅ Context Loaded: {st.session_state.current_case}")
+                else:
+                    logger.warning(f"❌ Case ID {st.session_state.current_case_id} not found.")
+
+            else:
+                 cursor.execute("SELECT COUNT(*) as count FROM ocr_extractions")
+                 count = cursor.fetchone()['count'] # dictionary=True
+                 logger.info(f"✅ Connected to MySQL database with {count} cases")
+                 st.session_state.db_initialized = True
+            
+            # --- CHAT HISTORY TABLE INIT ---
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ai_chat_histories (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    session_id VARCHAR(255) DEFAULT NULL,
+                    role VARCHAR(50) NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            
+            # --- LOAD HISTORY IF USER ID PRESENT ---
+            if st.session_state.user_id and not st.session_state.history_loaded:
+                # Get the most recent session_id for this user
+                cursor.execute(f"SELECT session_id FROM ai_chat_histories WHERE user_id = {st.session_state.user_id} ORDER BY created_at DESC LIMIT 1")
+                last_session_row = cursor.fetchone()
+                
+                if last_session_row and last_session_row['session_id']:
+                    last_sid = last_session_row['session_id']
+                    st.session_state.current_session_id = last_sid
+                    
+                    # Load messages for this session
+                    cursor.execute(f"SELECT role, content FROM ai_chat_histories WHERE session_id = '{last_sid}' ORDER BY id ASC")
+                    history = cursor.fetchall()
+                    
+                    if history:
+                        st.session_state.messages = [] # Reset local buffer
+                        for msg in history:
+                            st.session_state.messages.append({"role": msg['role'], "content": msg['content']})
+                        logger.info(f"Loaded {len(history)} messages from session {last_sid}")
+                
+                st.session_state.history_loaded = True
+
             cursor.close()
             conn.close()
     except Error as e:
         logger.error(f"Database initialization error: {e}")
         st.error(f"Database error: {e}. Make sure XAMPP MySQL is running!")
+
+def save_chat_message(user_id, role, content, session_id=None):
+    """Save chat message to database"""
+    if not user_id:
+        return
+        
+    try:
+        conn = get_db_connection()
+        if conn and conn.is_connected():
+            cursor = conn.cursor()
+            # Escape content to prevent SQL projection issues (though binding is safer, simple string escape for now)
+            # Actually, let's use parameterized query which is standard
+            sql = "INSERT INTO ai_chat_histories (user_id, role, content, session_id) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (user_id, role, content, session_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+    except Error as e:
+        logger.error(f"Failed to save chat history: {e}")
 
 def extract_date_components(query: str) -> Optional[tuple[str, str, str]]:
     """Extracts day, month, year from query."""
@@ -232,7 +342,8 @@ COMPLETE FIELD LIST:
 - case_no: Case number (e.g., "Civil Appeal No. 582 of 2001")
 - jurisdiction: Jurisdiction information
 - judgment: Full judgment text
-- homepage: Homepage flag{context_info}
+- homepage: Homepage flag
+- deleted_at: Deletion timestamp (NULL if active){context_info}
 
 IMPORTANT RULES:
 1. Return ONLY SQL query, no explanation or markdown
@@ -250,18 +361,29 @@ IMPORTANT RULES:
 13. Select only relevant columns needed to answer the question
 14. LIMIT 20 unless user asks for more
 15. Use OR when searching multiple fields for same keyword
-16. ALWAYS INCLUDE 'id', 'jurisdiction', 'book_volume', 'published_year', 'starting_page_no', 'ending_page_no', 'related_act_order_rule', and 'sections_subsections' columns in your SELECT statement
+16. ALWAYS INCLUDE 'id', 'jurisdiction', 'book_volume', 'published_year', 'starting_page_no', 'ending_page_no', 'related_act_order_rule', 'sections_subsections', 'petitioners', and 'respondent' columns in your SELECT statement
 17. CORRECT TYPOS: If the user makes a spelling mistake (e.g., "cmmissioner", "incom-tax"), use the CORRECTED spelling (e.g., "commissioner", "income-tax") in your SQL LIKE clauses. Use your knowledge of legal terms and proper names to fix errors.
 18. CONVERT DATES: Transform natural language dates like "17th March, 1982" into 'YYYY-MM-DD' format (e.g., '1982-03-17') for the `decided_on` column.
 19. LOGICAL OPERATORS: When a user specifies multiple conditions (e.g., "Judge X AND Date Y"), use the `AND` operator to strictly require both.
 20. CLEAN NAMES: When searching for Judges or Parties, REMOVE titles like 'C.J.', 'Justice', 'Mr.', 'Mrs.', 'Dr.', 'Advocate' and punctuation. Only search for the core name (e.g., "Kemaluddin Hossain C.J," -> `judge_name LIKE '%Kemaluddin Hossain%'`).
-21. SUMMARY REQUESTS: If user asks for "summary", "gist", "brief", or "what happened", you MUST include the `judgment` column in your SELECT statement.
+21. SUMMARY/DETAILS REQUESTS: If user asks for "summary", "gist", "brief", "details", "tell me about", or "what happened", you MUST include the `judgment` column in your SELECT statement. This is CRITICAL for generating summaries.
 22. CONTEXT RETENTION: IF a case context is set (e.g., "[CONTEXT: Current case is X]") AND the user query is not explicitly a new search (i.e. does not contain "find cases", "search for", "show me cases"), YOU MUST restrict your SQL to that case using `WHERE case_no LIKE '%X%'`. Treat "which page?", "what date?", "who is judge?" as follow-ups about the CURRENT case.
+23. ARTICLE/SECTION SEARCHES: If user asks for "Article X of Act Y", you MUST SPLIT the search. Search `related_act_order_rule LIKE '%Y%'` AND `sections_subsections LIKE '%X%'`. Do NOT search for the full phrase "Article X of Act Y" in a single column. Note that sections often contain dashes (e.g. "Article—102"), so use broad wildcards like separate `LIKE` clauses or just the number.
+24. CITATION/SECTION REQUESTS: If user asks "what section?", "find rules", "articles mentioned", or "legal basis", you MUST include the `judgment` column in your SELECT statement to allow scanning the full text.
+25. PAGE LOOKUP: If user asks for "Page X of Volume Y", you MUST search for the case that CONTAINS that page. Use `book_volume = Y AND starting_page_no <= X AND ending_page_no >= X`. You MUST SELECT: `id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, judge_name, decided_on, result, subject, judgment, petitioners, respondent`. Do NOT search for strict equality `starting_page_no = X`.
+26. VOLUME/YEAR CALCULATION: If user uses "Volume" in their query, calculate the Year as `1980 + VolumeNumber` and use `published_year` for the search. Example: "Volume 1" = Year 1981. Search `published_year = 1981` OR `book_volume = 1`.
+27. DELETED CASES: You must ALWAYS exclude deleted cases. Add `deleted_at IS NULL` to every query's WHERE clause. Example: `WHERE case_no LIKE '%...' AND deleted_at IS NULL`.
 
 QUERY EXAMPLES:
 
 Q: "Tell me about case 582 of 2001"
 SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result FROM ocr_extractions WHERE case_no LIKE '%582%' AND case_no LIKE '%2001%' LIMIT 5;
+
+Q: "What case is mentioned in page 140 of volume 59?"
+SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year FROM ocr_extractions WHERE (book_volume = 59 OR published_year = 2039) AND starting_page_no <= 140 AND ending_page_no >= 140 LIMIT 5;
+
+Q: "Find Civil Revision No. 6085 of 2007"
+SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%6085%' AND case_no LIKE '%2007%' LIMIT 5;
 
 Q: "Find Civil Revision No. 6085 of 2007"
 SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%6085%' AND case_no LIKE '%2007%' LIMIT 5;
@@ -270,7 +392,7 @@ Q: "Who was the judge in this case?" (with context: case 582)
 SQL: SELECT id, case_no, judge_name, decided_on FROM ocr_extractions WHERE case_no LIKE '%582%' LIMIT 5;
 
 Q: "What sections were mentioned?"
-SQL: SELECT id, case_no, sections_subsections, related_act_order_rule FROM ocr_extractions WHERE case_no LIKE '%{st.session_state.current_case if st.session_state.current_case else ''}%' LIMIT 5;
+SQL: SELECT id, case_no, sections_subsections, related_act_order_rule, judgment FROM ocr_extractions WHERE case_no LIKE '%{st.session_state.current_case if st.session_state.current_case else ''}%' LIMIT 5;
 
 Q: "Cases involving Kabita Khatun"
 SQL: SELECT case_no, parties, division, decided_on, subject FROM ocr_extractions WHERE parties LIKE '%Kabita Khatun%' LIMIT 5;
@@ -289,6 +411,12 @@ SQL: SELECT case_no, parties, division, decided_on, subject, result FROM ocr_ext
 
 Q: "Cases decided in March 2006"
 SQL: SELECT case_no, parties, decided_on, subject, result FROM ocr_extractions WHERE decided_on LIKE '2006-03-%' LIMIT 5;
+
+Q: "Find Death Reference No. 6 of 2001"
+SQL: SELECT case_no, parties, decided_on, subject, result, judgment FROM ocr_extractions WHERE case_no LIKE '%Death Reference%' AND case_no LIKE '%6%' AND case_no LIKE '%2001%' LIMIT 5;
+
+Q: "Cases involving Article 102 of the Constitution"
+SQL: SELECT case_no, parties, related_act_order_rule, sections_subsections, subject FROM ocr_extractions WHERE (related_act_order_rule LIKE '%Constitution%' AND sections_subsections LIKE '%102%') OR content LIKE '%Article 102%' LIMIT 5;
 
 Q: "Show me dismissed appeals"
 SQL: SELECT case_no, parties, result, decided_on, division FROM ocr_extractions WHERE result LIKE '%dismiss%' LIMIT 5;
@@ -337,6 +465,10 @@ SQL:"""
 
     if st.session_state.current_case:
         prompt_hints += f"\n[CONTEXT: Current case is {st.session_state.current_case}. User likely asks about THIS case. Restrict SQL to `case_no LIKE '%{st.session_state.current_case}%'` unless asked to search new.]"
+    
+    # Constitution/Act Hint
+    if "constitution" in question.lower() and "article" in question.lower():
+        prompt_hints += "\n[SYSTEM HINT: User is asking about Constitution Article. YOU MUST SPLIT SEARCH: `related_act_order_rule LIKE '%Constitution%' AND sections_subsections LIKE '%[Number]%'`. Do NOT search for 'Article X of Constitution' as one string.]"
     if st.session_state.current_parties:
         prompt_hints += f"\n[CONTEXT: Current parties are {st.session_state.current_parties}]"
     
@@ -580,14 +712,21 @@ Answer (be concise):"""
     # Format results for AI (token-efficient)
     results_text = ""
     # Smart context management: If many results, strip heavy text fields to avoid token errors
-    include_full_text = len(results) <= 3
+    # BUT if user asks for details/summary, we MUST provide judgment text (truncated if needed)
+    force_detail = any(k in question.lower() for k in ["detail", "summary", "gist", "brief", "tell me about"])
+    include_full_text = len(results) <= 3 or force_detail
     
     for i, result in enumerate(results, 1):  # Process ALL results
         results_text += f"\n--- Case {i} ---\n"
         for key, value in result.items():
             # Skip massive text fields if we have many results, unless specifically needed
+            # Skip massive text fields if we have many results, unless specifically needed
             if not include_full_text and key in ['content', 'judgment', 'file_path']:
-                continue
+                # Even if skipping full text, include a snippet of judgment for context
+                 if key == 'judgment' and value:
+                     value = value[:1000] + "... [Truncated]"
+                     results_text += f"{key}: {value}\n"
+                 continue
                 
             if value and key in ['case_no', 'parties', 'petitioners', 'respondent', 
                                  'division', 'decided_on', 'judge_name', 'subject', 'result',
@@ -610,7 +749,7 @@ Answer (be concise):"""
     
 IMPORTANT FORMATTING:
 - **PAGE FORMAT**: Combine starting and ending pages into a single line: **Page:** [start] to [end] (e.g. **Page:** 23 to 25).
-- **CLEAN DATA**: Remove all HTML tags (<p>, <br>).
+- **CLEAN DATA**: Remove ALL HTML tags (e.g., <strong>, <br>, <p>, <em>, <span>, <div>). The output must be plain markdown text only.
 - **BULLET POINTS**: You MUST use a bulleted list format for case details. Do NOT put them on one line.
 
 ANSWERING RULES:
@@ -620,25 +759,50 @@ ANSWERING RULES:
    - Example Q: "Who is the judge?" -> A: "The judge was **Justice Mr. X**." (That's it).
 
 2. **GENERAL SEARCH / DETAILS** (e.g., "Tell me about case X", "Find cases about land"):
-   - Provide a structured summary with bullet points.
-   - **Structure:**
-     *   **Case No:** ...
-     *   **Volume:** ...
-     *   **Year:** ...
-     *   **Page:** ...
-     *   **Related Acts:** ...
-     *   **Subject:** ...
+   - Provide a structured summary.
+   - **MANDATORY OUTPUT FORMAT**:
+     *   **Case No:** [Case No]
+     *   **Volume:** [Book Volume]
+     *   **Year:** [Published Year]
+     *   **Page:** [Start] to [End]
+     *   **Decided On:** [Date]
+     *   **Result:** [Result]
+     *   **Parties:** [Parties]
+     *   **Hon'ble Judge(s):** [Judge Names]
+     *   **For the Appellants:** [Value from 'petitioners' column]
+     *   **For the Respondent:** [Value from 'respondent' column]
+     *   **Summery of the Subject Matter:** [Subject - YOU MUST Summarize this to maximum 4 lines if the text is longer]
+     *   **Jurisdiction:** [Jurisdiction]
+     *   **Related Acts/Rules/Orders:** [Acts/Rules]
+     *   **Summery of JUDGMENT:**
+         *   **Facts:** [Brief facts]
+         *   **Arguments:** [Brief arguments]
+         *   **Decision:** [Court's decision]
      *   [🔗 **View Full Case**](Link from data)
+
    - **SEPARATOR**: You MUST put a horizontal line `---` after each case to separate them.
-   - **MANDATORY**: You MUST Display **Volume**, **Year**, **Page**, **Related Acts**, and **Sections** if available.
+   - **MANDATORY**: Use "Not Found" if a field is empty (except for Summary, generate that).
    - **MANDATORY**: You MUST include the [🔗 View Full Case](Link) for EACH case you list. Use the 'View Full Case Link' provided in the data.
-   - Bold the field labels (e.g., **Case No:**).
+   - Bold the field labels (e.g., **Volume:**).
 
 3. **SUMMARIZATION** (e.g. "Give me the summary", "What is the gist"):
    - Ignore the "MANDATORY" metadata rule.
    - Focus purely on summarizing the `judgment` text if available.
-   - Structure the answer as: **Facts**, **Arguments**, **Decision**.
-   - Keep it concise and readable.
+   - **Structure**:
+     * **Facts:** [Detailed account of facts]
+     * **Arguments:** [Detailed summary of arguments from both sides]
+     * **Decision:** [Comprehensive explanation of judgment]
+   - **LENGTH**: The summary MUST be broad and comprehensive (approx 150-200 words).
+   - **CUSTOM LENGTH**: IF the user specifies a length (e.g. "400 words", "detailed", "long"), you MUST respect that constraint and expand the summary accordingly.
+
+4. **SECTION LIST / CITATIONS** (e.g. "List sections", "sections mentioned"):
+   - Scan the `judgment` text and `related_act_order_rule` / `sections_subsections` columns.
+   - **Structure**:
+     * **Acts/Rules Cited:** [List all Acts]
+     * **Specific Sections:**
+       - [Act Name] Section [X]
+       - [Act Name] Section [Y]
+   - **MANDATORY**: Ensure you catch ALL sections mentioned in the text.
 
 IMPORTANT CONTEXT: 
 - If 'petitioners' field is present, it contains the advocates/lawyers for the petitioners
@@ -981,10 +1145,99 @@ def apply_custom_css():
 
 apply_custom_css()
 
+# Sidebar
+with st.sidebar:
+    st.header("⚙️ Controls")
+    
+    # History Section
+    with st.expander("📜 Chat History", expanded=True):
+        if st.session_state.user_id:
+             # NEW CHAT BUTTON
+             if st.button("➕ New Chat", use_container_width=True):
+                 st.session_state.messages = []
+                 st.session_state.current_session_id = str(uuid.uuid4())
+                 st.session_state.current_case = None # Reset case context
+                 st.rerun()
+                 
+             st.markdown("---")
+             
+             # LOAD SESSIONS LIST
+             try:
+                 conn = get_db_connection()
+                 if conn:
+                     cursor = conn.cursor(dictionary=True)
+                     # Get headers of last 10 sessions (distinct session_id)
+                     # We group by session_id and take the FIRST user message as the title
+                     query = f"""
+                        SELECT session_id, 
+                               MIN(created_at) as started_at,
+                               (SELECT content FROM ai_chat_histories h2 WHERE h2.session_id = h1.session_id AND role='user' ORDER BY id ASC LIMIT 1) as title
+                        FROM ai_chat_histories h1 
+                        WHERE user_id = {st.session_state.user_id} 
+                        GROUP BY session_id 
+                        ORDER BY started_at DESC 
+                        LIMIT 10
+                     """
+                     cursor.execute(query)
+                     sessions = cursor.fetchall()
+                     
+                     st.caption(f"Recent Conversations ({len(sessions)})")
+                     
+                     for sess in sessions:
+                         sid = sess['session_id']
+                         # Handle missing title or missing UUID
+                         if not sid: continue 
+                         
+                         title = sess['title'] if sess['title'] else "New Chat conversation"
+                         if len(title) > 30: title = title[:30] + "..."
+                         
+                         # Determine button style (Active vs Inactive)
+                         # Note: Streamlit buttons don't support custom CSS classes easily in loop without hacks, 
+                         # so we just use standard buttons.
+                         if st.button(f"💬 {title}", key=sid, use_container_width=True):
+                             # LOAD SESSION LOGIC
+                             st.session_state.current_session_id = sid
+                             st.session_state.messages = []
+                             
+                             cursor.execute(f"SELECT role, content FROM ai_chat_histories WHERE session_id = '{sid}' ORDER BY id ASC")
+                             history = cursor.fetchall()
+                             for msg in history:
+                                 st.session_state.messages.append({"role": msg['role'], "content": msg['content']})
+                             st.rerun()
+
+                     cursor.close()
+                     conn.close()
+             except Exception as e:
+                 st.error(f"Error loading history: {e}")
+                 
+             # Clear All History
+             st.markdown("---")
+             if st.button("🗑️ Delete All History", use_container_width=True):
+                 try:
+                     conn = get_db_connection()
+                     if conn:
+                         cursor = conn.cursor()
+                         cursor.execute(f"DELETE FROM ai_chat_histories WHERE user_id = {st.session_state.user_id}")
+                         conn.commit()
+                         cursor.close()
+                         conn.close()
+                         st.session_state.messages = []
+                         st.rerun()
+                 except Exception as e:
+                     st.error(f"Failed: {e}")
+        else:
+             st.warning("⚠️ No User ID detected. History not saving.")
+             st.caption("Access via the BLD Dashboard to enable history.")
+
 # Top Control Bar
 with st.container():
     col1, col2, col3 = st.columns([18, 1, 1])
     
+    with col1:
+         # Show context banner if locked
+         if st.session_state.context_locked and st.session_state.current_case:
+             st.info(f"🔒 **Context Locked**: Discussing **{st.session_state.current_case}**")
+
     with col2:
         # Toggle Sources Button
         icon = "📖" if st.session_state.show_sources else "📕"
@@ -996,8 +1249,11 @@ with st.container():
         # Clear Chat Button (Top Right - beside Deploy)
         if st.button("🗑️", help="Clear Conversation", use_container_width=True):
             st.session_state.messages = []
-            st.session_state.current_case = None
-            st.session_state.current_parties = None
+            # Do NOT clear context if locked
+            if not st.session_state.context_locked:
+                st.session_state.current_case = None
+                st.session_state.current_parties = None
+                st.session_state.current_case_id = None
             st.rerun()
     
 # Initialize database
@@ -1108,6 +1364,11 @@ if prompt := st.chat_input("Ask about a legal case..."):
 
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    # SAVE USER MESSAGE
+    if st.session_state.user_id:
+         save_chat_message(st.session_state.user_id, "user", prompt, st.session_state.current_session_id)
+
     with st.chat_message("user"):
         st.markdown(prompt)
     
@@ -1150,11 +1411,16 @@ if prompt := st.chat_input("Ask about a legal case..."):
                     answer = generate_answer(prompt, results)
                 
                 # Add assistant message
+                # Add assistant message
                 st.session_state.messages.append({
                     "role": "assistant", 
                     "content": answer,
                     "sql": sql
                 })
+                
+                # SAVE ASSISTANT MESSAGE
+                if st.session_state.user_id:
+                     save_chat_message(st.session_state.user_id, "assistant", answer, st.session_state.current_session_id)
                 
                 # Rerun to update the Right Panel immediately
                 st.rerun()
@@ -1163,11 +1429,15 @@ if prompt := st.chat_input("Ask about a legal case..."):
                 if results is None:
                      error_msg = "Error executing SQL query. Please try rephrasing your question."
                      st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                     if st.session_state.user_id:
+                         save_chat_message(st.session_state.user_id, "assistant", error_msg, st.session_state.current_session_id)
                      with st.chat_message("assistant"):
                          st.error(error_msg)
                 else:
                      warning_msg = "No matching cases found. Try broadening your search or checking spelling."
                      st.session_state.messages.append({"role": "assistant", "content": warning_msg})
+                     if st.session_state.user_id:
+                         save_chat_message(st.session_state.user_id, "assistant", warning_msg, st.session_state.current_session_id)
                      with st.chat_message("assistant"):
                          st.warning(warning_msg)
         else:

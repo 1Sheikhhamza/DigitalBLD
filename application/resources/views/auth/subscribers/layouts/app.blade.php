@@ -23,44 +23,52 @@
   @stack('styles')
   <style>
     @media print {
-        @page {
-            size: A4;
-            margin: 1.5cm;
-        }
-        .navbar,
-        .announcement-bar,
-        #chat-floating-btn,
-        #chat-widget,
-        .print-btn-container,
-        footer,
-        .footer {
-            display: none !important;
-        }
-        body {
-            background: white;
-            color: black;
-            font-size: 11pt; /* Slightly smaller for better fit */
-        }
-        a {
-            text-decoration: none;
-            color: black;
-        }
-        .container {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .list-group-item {
-            border: none;
-            border-bottom: 1px solid #ddd; /* Cleaner look */
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-        h4 {
-            margin-top: 0;
-            padding-top: 10px;
-        }
+      @page {
+        size: A4;
+        margin: 1.5cm;
+      }
+
+      .navbar,
+      .announcement-bar,
+      #chat-floating-btn,
+      #chat-widget,
+      .print-btn-container,
+      footer,
+      .footer {
+        display: none !important;
+      }
+
+      body {
+        background: white;
+        color: black;
+        font-size: 11pt;
+        /* Slightly smaller for better fit */
+      }
+
+      a {
+        text-decoration: none;
+        color: black;
+      }
+
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .list-group-item {
+        border: none;
+        border-bottom: 1px solid #ddd;
+        /* Cleaner look */
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      h4 {
+        margin-top: 0;
+        padding-top: 10px;
+      }
     }
   </style>
 </head>
@@ -208,12 +216,12 @@
   <!-- Chat Widget -->
   <!-- Floating Chat Button -->
   <div id="chat-floating-btn" onclick="toggleChat()"
-    style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background-color: #0d6efd; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1060; transition: transform 0.2s;">
+    style="position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background-color: #0d6efd; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1060; transition: transform 0.2s;">
     <i class="bi bi-chat-dots-fill fs-3"></i>
   </div>
 
   <div id="chat-widget" class="card shadow border-0"
-    style="display: none; position: fixed; bottom: 100px; right: 30px; width: 350px; z-index: 1050; transition: all 0.3s ease;">
+    style="display: none; position: fixed; bottom: 100px; left: 30px; width: 350px; z-index: 1050; transition: all 0.3s ease;">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <span class="fw-bold"><i class="bi bi-chat-dots"></i> Support Chat</span>
       <div>
@@ -302,9 +310,9 @@
         widget.style.width = '350px';
         widget.style.height = 'auto'; // reset height
         widget.style.bottom = '100px';
-        widget.style.right = '30px';
+        widget.style.right = 'auto'; // clear right
+        widget.style.left = '30px';  // set left
         widget.style.top = 'auto';
-        widget.style.left = 'auto';
         messages.style.height = '300px';
         icon.classList.remove('bi-fullscreen-exit');
         icon.classList.add('bi-arrows-fullscreen');

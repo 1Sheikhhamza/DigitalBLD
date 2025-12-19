@@ -5,7 +5,7 @@
 
   Local URL: http://localhost:8501
   Network URL: http://192.168.68.112:8501
-  External URL: http://103.72.212.62:8501
+  External URL: http://103.72.212.57:8501
 
   For better performance, install the Watchdog module:
 
@@ -13,9 +13,391 @@
   $ pip install watchdog
             
 INFO:__main__:✅ Connected to MySQL database with 6060 cases
-INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, subject, result, judgment FROM ocr_extractions WHERE related_act_order_rule LIKE '%Constitution%' AND sections_subsections LIKE '%102%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 140 AND ending_page_no >= 140 LIMIT 20;
 INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
-INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, content, file_path, file_name, status, published_month, key_words, judgment, homepage FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' LIMIT 20
-INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, judgment FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' LIMIT 1;
-INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%'
-INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, content FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No.5832 of 2003%' AND sections_subsections LIKE '%102(2)(a)%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. 113 of 1980 from W.P. 265 of 1978%' AND (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 231 AND ending_page_no >= 231 LIMIT 5;
+INFO:__main__:SQL ENFORCER: Injecting context C.A. 113 of 1980 from W.P. 265 of 1978 into SQL
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. 113 of 1980 from W.P. 265 of 1978%' AND  (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 230 AND ending_page_no >= 230 LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT jurisdiction, id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 230 AND ending_page_no >= 230 LIMIT 20;
+INFO:__main__:SQL ENFORCER: Injecting context F. M. A. 204 of 1976 into SQL
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%F. M. A. 204 of 1976%' AND  (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 246 AND ending_page_no >= 246 LIMIT 5;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 246 AND ending_page_no >= 246 LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, content FROM ocr_extractions WHERE (book_volume = 1 OR published_year = 1981) AND starting_page_no <= 247 AND ending_page_no >= 247 LIMIT 5;
+INFO:__main__:Generated SQL: SELECT 
+    id, 
+    jurisdiction, 
+    book_volume, 
+    published_year, 
+    starting_page_no, 
+    ending_page_no, 
+    related_act_order_rule, 
+    sections_subsections
+FROM 
+    ocr_extractions
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE (subject LIKE '%murder%' OR key_words LIKE '%murder%') AND (book_volume = 1 OR published_year = 1981) LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE subject LIKE '%murder%' OR key_words LIKE '%murder%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, subject, key_words
+FROM ocr_extractions
+WHERE subject LIKE '%newspaper%' OR key_words LIKE '%newspaper%' OR content LIKE '%newspaper%'
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE subject LIKE '%sexual harassment%' OR key_words LIKE '%sexual harassment%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, judgment, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%' LIMIT 1;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, subject, key_words
+FROM ocr_extractions
+WHERE published_year = 2019
+AND book_volume = 39
+AND (subject LIKE '%sexual harassment%' OR key_words LIKE '%sexual harassment%')
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT jurisdiction, id, case_no, parties, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, subject, judgment
+FROM ocr_extractions
+WHERE (book_volume = 39 OR published_year = 2019) AND (subject LIKE '%sexual harassment%' OR key_words LIKE '%sexual harassment%')
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, subject, jurisdiction
+FROM ocr_extractions
+WHERE (book_volume = 39 OR published_year = 2019) AND (subject LIKE '%sexual harassment%' OR key_words LIKE '%sexual harassment%')
+LIMIT 20;
+INFO:__main__:Context locked to Case ID: 2406
+INFO:__main__:✅ Context Loaded: Criminal Revision No. 778 OF 2017. And Criminal Revision No. 1256 Of 2017.
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Generated SQL: SELECT id, case_no, judge_name, decided_on, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%' LIMIT 5;
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, subject, result, judgment, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%' LIMIT 1;
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Generated SQL: SELECT id, case_no, result, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%' LIMIT 5;
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%'
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, subject, judgment FROM ocr_extractions WHERE case_no LIKE '%Writ Petition No. 5916 of 2008%' LIMIT 1;
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 1115
+INFO:__main__:✅ Context Loaded: Writ Petition No. 5916 of 2008
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3397
+INFO:__main__:✅ Context Loaded: Crl. A. 22 of 1982
+INFO:__main__:Context locked to Case ID: 3400
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:Generated SQL: SELECT id, case_no, petitioners, respondent, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. 79 of 1982%'
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:Generated SQL: SELECT id, case_no, subject, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. 79 of 1982%' LIMIT 5;
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, subject, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A. 79 of 1982%' LIMIT 5;
+INFO:__main__:✅ Context Loaded: C.A. 79 of 1982
+INFO:__main__:Context locked to Case ID: 5145
+INFO:__main__:✅ Context Loaded: C.A. 9 of 1987
+INFO:__main__:Context locked to Case ID: 5145
+INFO:__main__:✅ Context Loaded: C.A. 9 of 1987
+INFO:__main__:✅ Context Loaded: C.A. 9 of 1987
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, subject FROM ocr_extractions WHERE case_no LIKE '%C.A. 9 of 1987%' LIMIT 5;
+INFO:__main__:✅ Context Loaded: C.A. 9 of 1987
+INFO:__main__:Context locked to Case ID: 5145
+INFO:__main__:✅ Context Loaded: C.A. 9 of 1987
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%C.A.%' AND case_no LIKE '%9%' AND case_no LIKE '%1987%' OR decided_on LIKE '%9%of%1987%' OR decided_on LIKE '%of%9%1987%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, key_words, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A. Nos, 10,11 & 2 of 1987.%' LIMIT 20;
+INFO:__main__:Context locked to Case ID: 3058
+INFO:__main__:✅ Context Loaded: C.A. Nos, 10,11 & 2 of 1987.
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%C.A. 9%' AND case_no LIKE '%1987%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, judge_name, decided_on, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. 9 of 1987%' LIMIT 5;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, related_act_order_rule, sections_subsections, jurisdiction, judgment, book_volume, published_year, starting_page_no, ending_page_no FROM ocr_extractions WHERE case_no LIKE '%C.A. 9 of 1987%' LIMIT 5;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections FROM ocr_extractions WHERE case_no LIKE '%C.A. Nos%' AND case_no LIKE '%10%' AND case_no LIKE '%11%' AND case_no LIKE '%2%' AND case_no LIKE '%1987%' LIMIT 20
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, judgment FROM ocr_extractions WHERE case_no LIKE '%10%' AND case_no LIKE '%1987%' OR case_no LIKE '%11%' AND case_no LIKE '%1987%' OR case_no LIKE '%2%' AND decided_on LIKE '%of%1987%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, division, decided_on, judge_name, subject, result, petitioners, respondent, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, judgment FROM ocr_extractions WHERE case_no LIKE '%10%' AND case_no LIKE '%1987%' OR case_no LIKE '%11%' AND case_no LIKE '%1987%' OR case_no LIKE '%2%' AND decided_on LIKE '%of%1987%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Context locked to Case ID: 3059
+INFO:__main__:✅ Context Loaded: C. A.17 of 1986
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE case_no LIKE '%C. A.17%' AND case_no LIKE '%1986%'
+LIMIT 20;
+INFO:__main__:Context locked to Case ID: 3060
+INFO:__main__:✅ Context Loaded: C.A. 107, 108 of 1984.
+INFO:__main__:Context locked to Case ID: 3061
+INFO:__main__:✅ Context Loaded: C.A.2of 1986
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A.2%' AND case_no LIKE '%1986%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A.2of 1986%' LIMIT 5;
+INFO:__main__:Context locked to Case ID: 3061
+INFO:__main__:✅ Context Loaded: C.A.2of 1986
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A.2%' AND case_no LIKE '%1986%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE parties LIKE '%AMAR KUMAR THAKUR%' AND parties LIKE '%STATE%'
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, jurisdiction, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE (book_volume = 8 OR published_year = 1988) AND starting_page_no <= 101 AND ending_page_no >= 101 LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%C.A. 107, 108 of 1984.%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, judge_name, decided_on, result, subject, judgment, petitioners, respondent, related_act_order_rule, sections_subsections, jurisdiction FROM ocr_extractions WHERE (book_volume = 8 OR published_year = 1988) AND starting_page_no <= 101 AND ending_page_no >= 101 LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE parties LIKE '%Masdar Hossain%' OR judge_name LIKE '%Masdar Hossain%' OR petitioners LIKE '%Masdar Hossain%' OR respondent LIKE '%Masdar Hossain%'
+LIMIT 20;
+INFO:__main__:Context locked to Case ID: 3061
+INFO:__main__:✅ Context Loaded: C.A.2of 1986
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE parties LIKE '%Masdar Hossain%' OR judge_name LIKE '%Masdar Hossain%' OR petitioners LIKE '%Masdar Hossain%' OR respondent LIKE '%Masdar Hossain%'
+LIMIT 20;
+INFO:__main__:Context locked to Case ID: 2621
+INFO:__main__:✅ Context Loaded: Civil Appeal No. 79 of 1999
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Appeal No. 79 of 1999%' LIMIT 1;
+INFO:__main__:Context locked to Case ID: 2621
+INFO:__main__:✅ Context Loaded: Civil Appeal No. 79 of 1999
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE parties LIKE '%Masdar Hossain%' OR judge_name LIKE '%Masdar Hossain%' OR petitioners LIKE '%Masdar Hossain%' OR respondent LIKE '%Masdar Hossain%'
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE parties LIKE '%Masdar Hossain%' OR judge_name LIKE '%Masdar Hossain%' OR petitioners LIKE '%Masdar Hossain%' OR respondent LIKE '%Masdar Hossain%'
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, jurisdiction, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Appeal No. 79 of 1999%' LIMIT 1;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, jurisdiction, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Appeal No. 79 of 1999%' LIMIT 1;
+INFO:__main__:Context locked to Case ID: 2621
+INFO:__main__:✅ Context Loaded: Civil Appeal No. 79 of 1999
+INFO:__main__:Context locked to Case ID: 2621
+INFO:__main__:✅ Context Loaded: Civil Appeal No. 79 of 1999
+INFO:__main__:Context locked to Case ID: 2622
+INFO:__main__:✅ Context Loaded: Civil Petition For Leave To Appeal No. 656 of 1999
+INFO:__main__:Context locked to Case ID: 2623
+INFO:__main__:✅ Context Loaded: Civil Appeal Nos. 11-13 of 2011 with C.P. No. 1159 of 2011.
+INFO:__main__:Context locked to Case ID: 2624
+INFO:__main__:✅ Context Loaded: Civil Appeal No. 80 of 1997
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, subject, result, judgment
+FROM ocr_extractions
+WHERE subject LIKE '%contempt of court%' OR key_words LIKE '%contempt of court%'
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Contempt Petition No. 116 of 2001%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE key_words LIKE '%digital forensic%' OR subject LIKE '%digital forensic%' OR content LIKE '%digital forensic%' LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE related_act_order_rule LIKE '%SAT Act 1950%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE related_act_order_rule LIKE '%NAT Act 1949%' LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE subject LIKE '%rape%' OR key_words LIKE '%rape%' LIMIT 20;
+INFO:__main__:Context locked to Case ID: 350
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, subject, result, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%' LIMIT 1;
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%'
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%'
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%'
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%'
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%' LIMIT 20;
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Context locked to Case ID: 350
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, case_no, judge_name, decided_on, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%' LIMIT 5
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.%'
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 3648 Of 2005 And Criminal Appeal No. 2598 Of 2005.
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE case_no LIKE '%Criminal Appeal No. 1314 of 1990%'
+AND deleted_at IS NULL
+LIMIT 20;
+INFO:__main__:Context locked to Case ID: 3198
+INFO:__main__:✅ Context Loaded: Criminal Appeal No. 1314 of 1990
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result
+FROM ocr_extractions
+WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009%'
+AND deleted_at IS NULL
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009.%' AND deleted_at IS NULL LIMIT 1;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, judgment
+FROM ocr_extractions
+WHERE case_no LIKE '%1924%'
+  AND case_no LIKE '%2009%'
+  AND deleted_at IS NULL
+LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment, case_no, parties
+FROM ocr_extractions
+WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009.%' AND deleted_at IS NULL
+LIMIT 1;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009.%' AND deleted_at IS NULL LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id,
+       case_no,
+       parties,
+       book_volume,
+       published_year,
+       starting_page_no,
+       ending_page_no,
+       related_act_order_rule,
+       sections_subsections,
+       petitioners,
+       respondent,
+       jurisdiction,
+       judgment
+FROM ocr_extractions
+WHERE case_no LIKE '%1924%'
+  AND case_no LIKE '%2009%'
+  AND deleted_at IS NULL
+LIMIT 1;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009.%' AND deleted_at IS NULL
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id,
+       case_no,
+       parties,
+       book_volume,
+       published_year,
+       starting_page_no,
+       ending_page_no,
+       related_act_order_rule,
+       sections_subsections,
+       petitioners,
+       respondent,
+       jurisdiction,
+       judge_name,
+       decided_on,
+       result,
+       judgment
+  FROM ocr_extractions
+ WHERE case_no LIKE '%1924%'
+   AND case_no LIKE '%2009%'
+   AND deleted_at IS NULL
+ LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, judgment FROM ocr_extractions WHERE case_no LIKE '%Civil Petition For Leave To Appel No.1924 of 2009.%' AND deleted_at IS NULL
+INFO:__main__:Generated SQL: SELECT id,
+       case_no,
+       parties,
+       book_volume,
+       starting_page_no,
+       ending_page_no,
+       published_year,
+       judge_name,
+       decided_on,
+       result,
+       subject,
+       judgment,
+       petitioners,
+       respondent,
+       jurisdiction,
+       related_act_order_rule,
+       sections_subsections
+FROM ocr_extractions
+WHERE (book_volume = 8
+       OR published_year = 1988)
+  AND starting_page_no <= 101
+  AND ending_page_no >= 101
+  AND deleted_at IS NULL
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result, judgment FROM ocr_extractions WHERE (subject LIKE '%murder%' OR key_words LIKE '%murder%') AND deleted_at IS NULL LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, subject, result, judgment
+FROM ocr_extractions
+WHERE (subject LIKE '%contempt of court%' OR key_words LIKE '%contempt of court%' OR content LIKE '%contempt of court%') AND deleted_at IS NULL
+LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, case_no, parties, division, decided_on, judge_name, subject, result, judgment FROM ocr_extractions WHERE key_words LIKE '%contempt of court%' OR subject LIKE '%contempt of court%' OR content LIKE '%contempt of court%' AND deleted_at IS NULL LIMIT 20;
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Loaded 2 messages for User 74
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Loaded 2 messages for User 74
+INFO:__main__:Context locked to Case ID: 3297
+INFO:__main__:✅ Context Loaded: @@@
+INFO:__main__:Loaded 2 messages for User 74
+INFO:__main__:Context locked to Case ID: 3395
+INFO:__main__:✅ Context Loaded: C.A. 131 of 1982
+INFO:__main__:Loaded 2 messages for User 74
+INFO:__main__:Generated SQL: SELECT id, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent FROM ocr_extractions WHERE case_no LIKE '%C.A. 131%' AND case_no LIKE '%1982%' AND deleted_at IS NULL LIMIT 20;
+2025-12-19 18:29:29.715 Received event for non-watched path: /Users/sheikhhamza/Desktop/Anti Gravatity/DigitalBLD_Launch_Ready/BLD_AI_Deployment_Ready/app_sql.py
+2025-12-19 18:32:06.253 Script compilation error
+Traceback (most recent call last):
+  File "/Users/sheikhhamza/Library/Python/3.9/lib/python/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+  File "/Users/sheikhhamza/Library/Python/3.9/lib/python/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 72, in get_bytecode
+    filebody = magic.add_magic(filebody, script_path)
+  File "/Users/sheikhhamza/Library/Python/3.9/lib/python/site-packages/streamlit/runtime/scriptrunner/magic.py", line 45, in add_magic
+    tree = ast.parse(code, script_path, "exec")
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/ast.py", line 50, in parse
+    return compile(source, filename, mode, flags,
+  File "/Users/sheikhhamza/Desktop/Anti Gravatity/DigitalBLD_Launch_Ready/BLD_AI_Deployment_Ready/app_sql.py", line 1369
+    if st.session_state.user_id:
+IndentationError: unexpected indent
+2025-12-19 18:32:06.498 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+INFO:__main__:✅ Connected to MySQL database with 6060 cases
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, jurisdiction FROM ocr_extractions WHERE subject LIKE '%murder%' OR key_words LIKE '%murder%' AND deleted_at IS NULL LIMIT 20;
+INFO:__main__:Generated SQL: SELECT id, case_no, parties, jurisdiction, book_volume, published_year, starting_page_no, ending_page_no, related_act_order_rule, sections_subsections, petitioners, respondent, subject, judgment
+FROM ocr_extractions
+WHERE (subject LIKE '%sexual harassment%' OR key_words LIKE '%sexual harassment%' OR judgment LIKE '%sexual harassment%') AND deleted_at IS NULL
+LIMIT 20;
