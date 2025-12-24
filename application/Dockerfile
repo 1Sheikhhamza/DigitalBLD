@@ -1,3 +1,15 @@
+# Stage 1: Build Frontend Assets
+FROM node:18 as frontend
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Helper for Composer
+FROM composer:latest as composer_stage
+
+# Stage 3: Production Image
 FROM php:8.2-fpm
 
 # Install system dependencies
@@ -18,23 +30,24 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer_stage /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
 # Copy existing application directory contents
 COPY . /var/www
+COPY --from=frontend /app/public/build /var/www/public/build
 
 # Install dependencies
-# We use --no-scripts to prevent auto-running commands that might fail without DB/Env
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage \
-    && chmod -R 775 /var/www/bootstrap/cache
+    && chmod -R 775 /var/www/bootstrap/cache \
+    && chmod +x /var/www/production_entrypoint.sh
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
-CMD ["php-fpm"]
+CMD ["/var/www/production_entrypoint.sh"]

@@ -77,15 +77,13 @@
   <div class="container copyright text-center mt-4">
     @php
       $copyrightText = $footerData['copy_right_text'] ?? '';
-      $newCredit = 'Designed & Developed by <a href="https://www.linkedin.com/in/1sheikhhamza/" target="_blank" class="text-decoration-none" style="color: inherit;">Sheikh Hamza</a>';
+      $companyName = 'Legalized Education Bangladesh Ltd';
+      $styledLink = '<a href="https://legalizedbd.com/" target="_blank" class="text-decoration-none" style="color: #FFFF00 !important;">Legalized Education Bangladesh Ltd.</a>';
 
-      // Check if the old credit exists in the text
-      if (str_contains($copyrightText, 'Legalized Education Bangladesh Ltd')) {
-        $output = str_replace('Legalized Education Bangladesh Ltd', '<a href="https://www.linkedin.com/in/1sheikhhamza/" target="_blank" class="text-decoration-none" style="color: #ffc107 !important;">Sheikh Hamza</a>', $copyrightText);
+      if (str_contains($copyrightText, $companyName)) {
+        $output = str_replace($companyName, $styledLink, $copyrightText);
       } else {
-        // If not found, append it (safe fallback)
-        $newCredit = 'Designed & Developed by <a href="https://www.linkedin.com/in/1sheikhhamza/" target="_blank" class="text-decoration-none" style="color: #ffc107 !important;">Sheikh Hamza</a>';
-        $output = $copyrightText . '<br>' . $newCredit;
+        $output = $copyrightText . '<br>Designed & Developed by ' . $styledLink;
       }
     @endphp
     {!! $output !!}

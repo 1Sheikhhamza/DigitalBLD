@@ -85,7 +85,6 @@
         <div class="offcanvas-header bg-light py-3 border-bottom">
             <h5 class="offcanvas-title d-flex align-items-center" id="aiAssistantOffcanvasLabel">
                 <span class="me-2">🤖</span> AI Assistant
-                <span class="badge bg-primary ms-2" style="font-size: 0.7em;">Case: {{ $data->case_no }}</span>
             </h5>
             <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
@@ -98,211 +97,329 @@
 @endsection
 @push('scripts')
     <script>
-        let speech = new SpeechSynthesisUtterance();
+        let currentUtterance = null;
         let isReading = false;
-        let originalContent = '';
-        let wordSpansMap = [];
+        let isPaused = false;
+        let boundaries = []; // Store boundaries globally for jump logic
 
-        let fullJudgmentText = "";
-        let globalOffset = 0;
+        // Helper: Wrap words in spans for highlighting
+        function wrapWordsInElement(element, wordIndexRef) {
+            const childNodes = Array.from(element.childNodes);
 
-        function toggleReadAloud(e) {
-            if (e) e.preventDefault(); // Click might not pass event if called internally
+            childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    if (!text.trim()) return;
+
+                    const words = text.split(/(\s+)/); // Keep delimiters
+                    const fragment = document.createDocumentFragment();
+
+                    words.forEach(word => {
+                        if (word.trim().length > 0) {
+                            const span = document.createElement('span');
+                            span.textContent = word;
+                            span.id = `tts-word-${wordIndexRef.count}`;
+                            span.className = 'tts-word-span pointer-cursor'; // Added pointer cursor class if you have CSS, else inline style?
+                            span.style.cursor = 'pointer'; // Ensure it looks clickable
+                            span.onclick = (e) => handleWordClick(e, wordIndexRef.count); // Direct click handler or delegated
+                            fragment.appendChild(span);
+                            wordIndexRef.count++;
+                        } else {
+                            fragment.appendChild(document.createTextNode(word));
+                        }
+                    });
+
+                    node.replaceWith(fragment);
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.classList.contains('tts-word-span')) return;
+                    wrapWordsInElement(node, wordIndexRef);
+                }
+            });
+        }
+
+        // Helper: Remove spans (unwrap)
+        function unwrapWords(element) {
+            const spans = element.querySelectorAll('span.tts-word-span');
+            spans.forEach(span => {
+                const text = document.createTextNode(span.textContent);
+                span.replaceWith(text);
+            });
+            element.normalize();
+        }
+
+        function stopReadAloud(e) {
+            if (e) e.preventDefault();
+            window.speechSynthesis.cancel();
+            resetTTSState();
+        }
+
+        function resetTTSState() {
             const btnText = document.getElementById('read-aloud-text');
             const icon = document.querySelector('#read-aloud-btn i');
+            const stopBtn = document.getElementById('stop-read-aloud-btn');
             const container = document.getElementById('judgment-content');
 
-            if (isReading && e) { // Only stop on toggle click, not restart
-                window.speechSynthesis.cancel();
-                isReading = false;
-                btnText.innerText = 'Read Aloud';
-                icon.className = 'bi bi-volume-up';
+            isReading = false;
+            isPaused = false;
 
-                // Restore original HTML
-                if (originalContent) {
-                    container.innerHTML = originalContent;
-                    originalContent = '';
-                }
-                // Remove click listener
-                container.removeEventListener('click', handleWordClick);
+            if (btnText) btnText.innerText = 'Read Aloud';
+            if (icon) icon.className = 'bi bi-play-circle';
+            if (stopBtn) stopBtn.style.display = 'none';
+
+            currentUtterance = null;
+            if (window.activeHighlightSpanId) {
+                const old = document.getElementById(window.activeHighlightSpanId);
+                if (old) old.classList.remove('bg-warning', 'text-dark');
+                window.activeHighlightSpanId = null;
+            }
+            // Optional: Unwrap words to clean up DOM, or keep them for future clicks? 
+            // Better to unwrap to assume clean state.
+            unwrapWords(container);
+        }
+
+        function handleWordClick(e, wordIndex) {
+            if (!isReading && !isPaused) {
+                // If not reading, start reading from here?
+                // Or just ignore? User said "option for to start from a specific line"
+                // Let's allow starting from here.
+                startReadAloud(wordIndex);
             } else {
-                // START READING
-                if (!originalContent) originalContent = container.innerHTML;
-
-                // If starting fresh (not a restart from click), parse text
-                if (fullJudgmentText === "") {
-                    fullJudgmentText = wrapWordsInSpans(container);
-                    // Add listener for click-to-read
-                    container.addEventListener('click', handleWordClick);
-                }
-
-                // Use globalOffset to determine where to start
-                const textToSpeak = fullJudgmentText.substring(globalOffset);
-
-                speech.text = textToSpeak;
-                speech.lang = 'en-US';
-                speech.rate = 1;
-                speech.pitch = 1;
-
-                speech.onboundary = function (event) {
-                    if (event.name === 'word') {
-                        // The event.charIndex is relative to the substring we just sent.
-                        // We must add globalOffset to find the absolute position.
-                        const absoluteIndex = event.charIndex + globalOffset;
-                        console.log('Boundary:', event.charIndex, 'Global:', absoluteIndex);
-                        highlightWordAtIndex(absoluteIndex);
-                    }
-                };
-
-                speech.onend = function () {
-                    // Only reset if we naturally finished, not if we just cancelled to restart
-                    // We can check 'speechSynthesis.speaking' but simpler:
-                    // If we are "restarting", 'isReading' stays true. 
-                    // But onend fires on cancel too.
-
-                    // We need a flag? Or just check if we are still supposed to be reading.
-                    // Actually, simpler: if we finished the whole text, we reset.
-                    // But if we cancelled to jump, we don't want to reset UI.
-                };
-
-                // Override onend to be robust:
-                speech.onend = function (event) {
-                    // If effectively finished the text?
-                    // Or just rely on the fact that if we start again immediately, we override icons.
-                }
-
-                // Better flow:
-                // 1. Cancel any current speech.
+                // If reading, jumping to this word
                 window.speechSynthesis.cancel();
-
-                window.speechSynthesis.speak(speech);
-                isReading = true;
-                btnText.innerText = 'Stop Reading';
-                icon.className = 'bi bi-stop-circle';
-
-                // Handle Finish
-                speech.onend = function (event) {
-                    // If simply finished running out of text
-                    // We need to differentiate Finish vs Cancel-for-Jump.
-                    // Using a short timeout to see if we restarted?
-                    // Or just let the user 'Stop' manually mainly.
-
-                    // Logic: If natural end, stop.
-                    // Unfortunately 'cancel' fires this too.
-                    // Let's check `speechSynthesis.speaking`.
-                };
+                startReadAloud(wordIndex);
             }
+            e.stopPropagation(); // Prevent bubbling
         }
 
-        function handleWordClick(e) {
-            if (!isReading) return;
+        // Delegated click handler for better performance if needed, 
+        // but individual onclicks on spans is fine for reasonable text size.
+        // Actually, let's use the startReadAloud logic.
 
-            // bubble up to span
-            let target = e.target;
-            if (target.tagName !== 'SPAN' || !target.classList.contains('word-span')) return;
+        function startReadAloud(startIndex = 0) {
+            const container = document.getElementById('judgment-content');
+            const btnText = document.getElementById('read-aloud-text');
+            const icon = document.querySelector('#read-aloud-btn i');
+            const stopBtn = document.getElementById('stop-read-aloud-btn');
 
-            // Find which word this is
-            // We can search map by element reference!
-            const match = wordSpansMap.find(item => item.element === target);
-            if (match) {
-                console.log('Clicked word at index:', match.start);
-                globalOffset = match.start;
-                // Restart reading from here
-                // We call toggle? No, toggle toggles. We need a specific 'start' function.
-                startReadingFromOffset();
+            // 1. Prepare DOM if not already
+            const spans = container.querySelectorAll('span.tts-word-span');
+            if (spans.length === 0) {
+                const wordCounter = { count: 0 };
+                wrapWordsInElement(container, wordCounter);
             }
+
+            // Re-query spans
+            const domSpans = Array.from(container.querySelectorAll('span.tts-word-span'));
+            if (domSpans.length === 0) {
+                alert("No text found.");
+                return;
+            }
+
+            // 2. Build map and text from startIndex
+            let textToSpeak = "";
+            boundaries = [];
+            let cursor = 0;
+
+            // We only want to speak from the startIndex-th span onwards
+            // But we need to build the boundaries relative to the NEW textToSpeak string.
+
+            // Find the span at startIndex
+            // Actually, we can just iterate all spans, skip until startIndex, and append text.
+
+            let startingSpanFound = false;
+
+            domSpans.forEach((span, index) => {
+                // Extract index from ID logic: tts-word-0, tts-word-1...
+                // Simpler: just match index of valid spans logic.
+                // The wrapWordsInElement counts sequentially. 
+                // So domSpans[i] corresponds to word index i.
+
+                if (index >= startIndex) {
+                    const text = span.textContent;
+                    // We also need to account for spaces between words?
+                    // The wrap function kept delimiters in text nodes but only wrapped words.
+                    // Accessing textContent of the container *includes* the non-wrapped text (spaces).
+                    // THIS IS TRICKY: Constructing text from partial DOM spans misses the spaces in between.
+
+                    // ROBUST STRATEGY: 
+                    // 1. Get full textContent of container.
+                    // 2. Find the character offset of the span at startIndex.
+                    // 3. Slice the textContent from that offset.
+
+                    // Let's find offset of domSpans[startIndex]
+                }
+            });
+
+            // Better Robust Strategy:
+            // Calculate offset of the start span
+            let startOffset = 0;
+            if (startIndex > 0 && startIndex < domSpans.length) {
+                // We need to find the character position of this span in the container.textContent
+                // Range API is good for this.
+                const range = document.createRange();
+                range.setStart(container, 0);
+                range.setEndBefore(domSpans[startIndex]);
+                startOffset = range.toString().length;
+            }
+
+            // Get text from that offset
+            const fullText = container.textContent;
+            textToSpeak = fullText.slice(startOffset);
+
+            if (!textToSpeak.trim()) return;
+
+            // Stop any current
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+            // UI Update
+            isReading = true;
+            isPaused = false;
+            btnText.innerText = 'Pause';
+            icon.className = 'bi bi-pause-circle';
+            stopBtn.style.display = 'inline-block';
+
+            window.activeHighlightSpanId = null;
+
+            // Boundary Mapping
+            // We need to map (utterance charIndex + startOffset) -> span in DOM
+            // Because utterance starts at 0, but corresponds to document at startOffset.
+
+            // Let's rebuild the global boundaries map for the WHOLE document first?
+            // Expensive? No.
+            // Let's just build it once if empty? No, DOM might change? 
+            // Just build it.
+
+            const allBoundaries = [];
+            let globalCursor = 0;
+            function buildMap(element) {
+                const childNodes = Array.from(element.childNodes);
+                childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        globalCursor += node.textContent.length;
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.classList.contains('tts-word-span')) {
+                            const len = node.textContent.length;
+                            allBoundaries.push({
+                                start: globalCursor,
+                                end: globalCursor + len,
+                                id: node.id
+                            });
+                            globalCursor += len;
+                        } else {
+                            buildMap(node);
+                        }
+                    }
+                });
+            }
+            globalCursor = 0;
+            buildMap(container);
+            boundaries = allBoundaries;
+
+            utterance.onboundary = function (event) {
+                if (event.name === 'word') {
+                    // event.charIndex is relative to textToSpeak
+                    // So absolute index is event.charIndex + startOffset
+                    const absIndex = event.charIndex + startOffset;
+
+                    const closest = boundaries.find(b => absIndex >= b.start && absIndex < b.end);
+
+                    if (closest && closest.id !== window.activeHighlightSpanId) {
+                        if (window.activeHighlightSpanId) {
+                            const old = document.getElementById(window.activeHighlightSpanId);
+                            if (old) old.classList.remove('bg-warning', 'text-dark');
+                        }
+
+                        window.activeHighlightSpanId = closest.id;
+                        const newSpan = document.getElementById(window.activeHighlightSpanId);
+                        if (newSpan) {
+                            newSpan.classList.add('bg-warning', 'text-dark');
+                            // newSpan.scrollIntoView({ behavior: 'smooth', block: 'center' }); // Disabled
+                        }
+                    }
+                }
+            };
+
+            utterance.onend = function () {
+                // Only reset if we naturally ended (not paused)
+                // Actually onboundary/onend might fire on pause? No.
+                // onend fires on finish.
+                resetTTSState();
+            };
+
+            utterance.onerror = function (event) {
+                console.error("TTS Error", event);
+                if (event.error !== 'interrupted') {
+                    resetTTSState();
+                }
+            };
+
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
         }
 
-        function startReadingFromOffset() {
-            // Cancel current
-            window.speechSynthesis.cancel(); // This stops immediately
+        function toggleReadAloud(e) {
+            if (e) e.preventDefault();
 
             const btnText = document.getElementById('read-aloud-text');
             const icon = document.querySelector('#read-aloud-btn i');
 
-            // Configure speech
-            const textToSpeak = fullJudgmentText.substring(globalOffset);
-            speech.text = textToSpeak;
-
-            // Re-bind boundary (needs updated logic scope if any, but globalOffset is global so ok)
-            // But verify speech object re-use.
-            // Better to re-assign params just in case.
-            speech.lang = 'en-US';
-            speech.rate = 1;
-            speech.pitch = 1; /* reset if needed */
-
-            speech.onboundary = function (event) {
-                if (event.name === 'word') {
-                    const absoluteIndex = event.charIndex + globalOffset;
-                    highlightWordAtIndex(absoluteIndex);
+            if (isReading) {
+                if (isPaused) {
+                    // Resume
+                    window.speechSynthesis.resume();
+                    isPaused = false;
+                    btnText.innerText = 'Pause';
+                    icon.className = 'bi bi-pause-circle';
+                } else {
+                    // Pause
+                    window.speechSynthesis.pause();
+                    isPaused = true;
+                    btnText.innerText = 'Resume';
+                    icon.className = 'bi bi-play-circle';
                 }
-            };
-
-            speech.onend = function () {
-                // Reset if finished
-                // See below for robust reset logic
-            };
-
-            window.speechSynthesis.speak(speech);
-            isReading = true;
-            btnText.innerText = 'Stop Reading';
-            icon.className = 'bi bi-stop-circle';
-        }
-
-        function wrapWordsInSpans(element) {
-            wordSpansMap = [];
-            let globalIndex = 0;
-            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-            let node;
-            const nodesToReplace = [];
-            while (node = walker.nextNode()) nodesToReplace.push(node);
-
-            let fullText = "";
-
-            nodesToReplace.forEach(node => {
-                const text = node.nodeValue;
-                fullText += text;
-                const tokens = text.split(/([^\w'])/);
-
-                const fragment = document.createDocumentFragment();
-                tokens.forEach(token => {
-                    if (token.length === 0) return;
-                    const span = document.createElement('span');
-                    span.textContent = token;
-                    if (/\w/.test(token)) {
-                        span.className = 'word-span';
-                        wordSpansMap.push({
-                            start: globalIndex,
-                            end: globalIndex + token.length,
-                            element: span
-                        });
-                    }
-                    globalIndex += token.length;
-                    fragment.appendChild(span);
-                });
-                node.parentNode.replaceChild(fragment, node);
-            });
-            return fullText;
-        }
-
-        function highlightWordAtIndex(charIndex) {
-            const old = document.querySelector('.highlight-word');
-            if (old) old.classList.remove('highlight-word');
-            const match = wordSpansMap.find(item => charIndex >= item.start && charIndex < item.end);
-            if (match) {
-                match.element.classList.add('highlight-word');
-                match.element.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+            } else {
+                // Start New
+                startReadAloud(0);
             }
         }
 
-        // Handle stop explicitly in toggle
-        // Fix reset issue:
-        speech.addEventListener('end', () => {
-            // If we are still 'isReading' but speech ended, and we didn't just restart...
-            // It's hard to track. 
-            // Let's trust user to click Stop, 
-            // OR, if the queue is empty.
+        // Add global click listener for delegated events on the container? 
+        // Or reliant on the onclick added in wrapWordsInElement?
+        // Using onclick in wrapWordsInElement is safer for specific span targeting.
+
+        // However, we need to ensure the container is wrapped initially if user just clicks a word *before* pressing Read Aloud.
+        // We can listen to container click?
+        // No, let's just use the toggle button to 'Activate' text-to-speech mode?
+        // User asked: "option for to start from a specific line"
+        // If I make the text clickable ONLY after "Read Aloud" is pressed, that might be confusing.
+        // Better: When "Read Aloud" is pressed, we wrap text.
+        // What if they want to click to start?
+        // Maybe we wrap on page load? No, intrusive.
+        // Let's stick to "Press Read Aloud to Start", then you can Pause/Resume or Click other words to Jump.
+        // Wait, "always starts from the begining - that should not be"
+        // So they want Pause (resume from where left off) AND Jump.
+        // My implementation supports both.
+        // I will add a click listener to the container so IF we are in reading mode (spans exist), clicks work.
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('judgment-content');
+            if (container) {
+                container.addEventListener('click', (e) => {
+                    // Check if target is a tts-word
+                    if (e.target.classList.contains('tts-word-span')) {
+                        // Parse index from ID: tts-word-123
+                        const parts = e.target.id.split('-');
+                        const index = parseInt(parts[2]);
+                        if (!isNaN(index)) {
+                            handleWordClick(e, index);
+                        }
+                    }
+                });
+            }
         });
+
     </script>
     <script>
         $(document).ready(function () {
@@ -328,20 +445,20 @@
                     success: function (res) {
                         if (res.comment) {
                             let newComment = `
-                                                                                        <div class="d-flex mb-3 p-3 border rounded shadow-sm">
-                                                                                            <img src="${res.comment.user.image ? res.comment.user.image : '{{ asset('assets/img/avater-user.webp') }}'}"
-                                                                                                alt="${res.comment.user.name}"
-                                                                                                class="rounded-circle me-3" width="50" height="50">
+                                                                                                                            <div class="d-flex mb-3 p-3 border rounded shadow-sm">
+                                                                                                                                <img src="${res.comment.user.image ? res.comment.user.image : '{{ asset('assets/img/avater-user.webp') }}'}"
+                                                                                                                                    alt="${res.comment.user.name}"
+                                                                                                                                    class="rounded-circle me-3" width="50" height="50">
 
-                                                                                            <div>
-                                                                                                <div class="d-flex align-items-center mb-1">
-                                                                                                    <h6 class="mb-0 me-2">${res.comment.user.name}</h6>
-                                                                                                    <small class="text-muted">Just now</small>
-                                                                                                </div>
-                                                                                                <p class="mb-0">${res.comment.comment}</p>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    `;
+                                                                                                                                <div>
+                                                                                                                                    <div class="d-flex align-items-center mb-1">
+                                                                                                                                        <h6 class="mb-0 me-2">${res.comment.user.name}</h6>
+                                                                                                                                        <small class="text-muted">Just now</small>
+                                                                                                                                    </div>
+                                                                                                                                    <p class="mb-0">${res.comment.comment}</p>
+                                                                                                                                </div>
+                                                                                                                            </div>
+                                                                                                                        `;
 
                             $('#comments').prepend(newComment);
 

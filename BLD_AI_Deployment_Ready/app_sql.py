@@ -320,7 +320,8 @@ COMPLETE FIELD LIST:
 - id: Primary key
 - volume_id: Volume identifier
 - book_volume: Volume number of BLD book
-- judge_name: Name of the judge(s)
+- judge_name: Name of the judge (short)
+- judges: Full names of all judges (search here too)
 - content: Full text content
 - file_path: Path to PDF file
 - file_name: Name of PDF file
@@ -349,7 +350,7 @@ IMPORTANT RULES:
 1. Return ONLY SQL query, no explanation or markdown
 2. Use LIKE '%keyword%' for text searches (case-insensitive)
 3. For case numbers, search in case_no field
-4. For judges, use judge_name field
+4. For judges, search in BOTH judge_name AND judges columns using OR
 5. For advocates/lawyers, search in petitioners OR respondent fields
 6. For "published year", use published_year field
 7. For date searches, use decided_on field
@@ -361,7 +362,7 @@ IMPORTANT RULES:
 13. Select only relevant columns needed to answer the question
 14. LIMIT 20 unless user asks for more
 15. Use OR when searching multiple fields for same keyword
-16. ALWAYS INCLUDE 'id', 'jurisdiction', 'book_volume', 'published_year', 'starting_page_no', 'ending_page_no', 'related_act_order_rule', 'sections_subsections', 'petitioners', and 'respondent' columns in your SELECT statement
+16. ALWAYS INCLUDE the following columns in your SELECT statement: 'id', 'case_no', 'parties', 'result', 'decided_on', 'judges', 'judge_name', 'jurisdiction', 'book_volume', 'published_year', 'starting_page_no', 'ending_page_no', 'related_act_order_rule', 'sections_subsections', 'petitioners', 'respondent', 'judgment'
 17. CORRECT TYPOS: If the user makes a spelling mistake (e.g., "cmmissioner", "incom-tax"), use the CORRECTED spelling (e.g., "commissioner", "income-tax") in your SQL LIKE clauses. Use your knowledge of legal terms and proper names to fix errors.
 18. CONVERT DATES: Transform natural language dates like "17th March, 1982" into 'YYYY-MM-DD' format (e.g., '1982-03-17') for the `decided_on` column.
 19. LOGICAL OPERATORS: When a user specifies multiple conditions (e.g., "Judge X AND Date Y"), use the `AND` operator to strictly require both.
@@ -713,7 +714,7 @@ Answer (be concise):"""
     results_text = ""
     # Smart context management: If many results, strip heavy text fields to avoid token errors
     # BUT if user asks for details/summary, we MUST provide judgment text (truncated if needed)
-    force_detail = any(k in question.lower() for k in ["detail", "summary", "gist", "brief", "tell me about"])
+    force_detail = any(k in question.lower() for k in ["detail", "summary", "gist", "brief", "tell me about", "facts", "arguments", "decision"])
     include_full_text = len(results) <= 3 or force_detail
     
     for i, result in enumerate(results, 1):  # Process ALL results
@@ -724,12 +725,12 @@ Answer (be concise):"""
             if not include_full_text and key in ['content', 'judgment', 'file_path']:
                 # Even if skipping full text, include a snippet of judgment for context
                  if key == 'judgment' and value:
-                     value = value[:1000] + "... [Truncated]"
+                     value = value[:4000] + "... [Truncated]"
                      results_text += f"{key}: {value}\n"
                  continue
                 
             if value and key in ['case_no', 'parties', 'petitioners', 'respondent', 
-                                 'division', 'decided_on', 'judge_name', 'subject', 'result',
+                                 'division', 'decided_on', 'judge_name', 'judges', 'subject', 'result',
                                  'sections_subsections', 'related_act_order_rule', 'volume_id', 'book_volume', 'published_year',
                                  'published_month', 'starting_page_no', 'ending_page_no', 'key_words', 'jurisdiction', 
                                  'content', 'judgment', 'file_name', 'status', 'id', 'homepage']:
@@ -1340,8 +1341,55 @@ if col_sources:
 
 
 
+# Check User Module Access (Dynamic Feature Module)
+def check_user_module_access(user_id, module_slug='ai-research'):
+    """Check if user has access to a specific feature module via their package"""
+    if not user_id:
+        return False
+        
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False
+            
+        cursor = conn.cursor(dictionary=True)
+        # Complex Join: Subscription -> Package -> Relation -> Feature -> Module
+        query = """
+            SELECT 1
+            FROM subscriptions s
+            JOIN packages p ON s.package_id = p.id
+            JOIN package_feature_relations pfr ON p.id = pfr.package_id
+            JOIN package_features pf ON pfr.feature_id = pf.id
+            JOIN package_feature_modules pfm ON pf.id = pfm.feature_id
+            WHERE s.subscriber_id = %s
+            AND s.status = 1 
+            AND (s.expire_date >= CURDATE() OR s.expire_date IS NULL)
+            AND pfm.slug = %s
+            LIMIT 1
+        """
+        cursor.execute(query, (user_id, module_slug))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        return result is not None
+    except Exception as e:
+        logger.error(f"Module access check error: {e}")
+        return False
+
 # Chat input (Global Bottom)
 if prompt := st.chat_input("Ask about a legal case..."):
+    
+    # 0. DYNAMIC ACCESS CONTROL CHECK
+    if st.session_state.user_id:
+        # Check if user has the 'ai-research' module enabled in their package
+        has_access = check_user_module_access(st.session_state.user_id, 'ai-research')
+        
+        if not has_access:
+             warning = "🚫 **Access Denied**: Your current plan does not include the **AI Research** feature. Please upgrade your package to access this tool."
+             st.chat_message("assistant").error(warning)
+             st.stop()
+             
     # Pre-process: Handle "Case 1", "Case 2" selection from previous results
     processed_prompt = prompt
     
@@ -1367,7 +1415,7 @@ if prompt := st.chat_input("Ask about a legal case..."):
     
     # SAVE USER MESSAGE
     if st.session_state.user_id:
-         save_chat_message(st.session_state.user_id, "user", prompt, st.session_state.current_session_id)
+        save_chat_message(st.session_state.user_id, "user", prompt, st.session_state.current_session_id)
 
     with st.chat_message("user"):
         st.markdown(prompt)

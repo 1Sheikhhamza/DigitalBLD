@@ -1,4 +1,4 @@
-<div class="container">
+<div class="container-fluid">
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -25,7 +25,7 @@
 
             <!-- Center: Action Buttons -->
             <div class="col-md col-12">
-                <div class="text-center d-flex align-items-center justify-content-center flex-wrap gap-1">
+                <div class="text-center d-flex align-items-center justify-content-center flex-nowrap gap-1">
                     <a href="{{ route('subscriber.legal-search.print', [$data->id, 'print']) }}" class="action-link"
                         target="_blank">
                         <i class="bi bi-printer"></i> Print
@@ -47,7 +47,11 @@
 
                     @if(auth('subscriber')->user()->canAccessModule('read.aloud'))
                         <a href="#" class="action-link" id="read-aloud-btn" onclick="toggleReadAloud(event)">
-                            <i class="bi bi-volume-up"></i> <span id="read-aloud-text">Read Aloud</span>
+                            <i class="bi bi-play-circle"></i> <span id="read-aloud-text">Read Aloud</span>
+                        </a>
+                        <a href="#" class="action-link text-danger" id="stop-read-aloud-btn" onclick="stopReadAloud(event)"
+                            style="display: none;">
+                            <i class="bi bi-stop-circle"></i> Stop
                         </a>
                     @else
                         <a href="{{ route('subscriber.upgrade.plan') }}" class="action-link">
@@ -57,9 +61,10 @@
                     <!-- <a href="{{ route('subscriber.legal-search.downloadPdf', $data->id) }}" class="action-link">
                         <i class="bi bi-download"></i> Download
                     </a> -->
-                    <a href="#" class="action-link">
+                    <div class="action-link d-flex align-items-center">
+                        <span class="me-1">Translator</span>
                         <div id="google_translate_element"></div>
-                    </a>
+                    </div>
                     @if(!$myDecision)
                         <a href="#" class="action-link" data-bs-toggle="modal" data-bs-target="#copyModal">
                             <i class="bi bi-folder"></i> Copy to My Folder
@@ -72,8 +77,8 @@
                                 <i class="bi bi-pencil"></i> Edit My Note
                             </a>
                             <!-- <a href="{{ route('subscriber.shared.decisions') }}" class="action-link">
-                                                                            <i class="bi bi-share"></i> Shared with Me
-                                                                        </a> -->
+                                                                                                                                            <i class="bi bi-share"></i> Shared with Me
+                                                                                                                                        </a> -->
                         @endif
                     @endif
                     @if(!$myDecision)
@@ -119,6 +124,43 @@
     </div>
 
 </div>
+
+<style>
+    .goog-te-gadget-simple {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        font-size: 13px !important;
+    }
+
+    .goog-te-gadget-simple .goog-te-menu-value {
+        color: transparent !important;
+        font-size: 0 !important;
+    }
+
+    .goog-te-gadget-simple .goog-te-menu-value span {
+        display: none !important;
+    }
+
+    /* Force dropdown arrow (img) to show */
+    .goog-te-gadget-simple .goog-te-menu-value img {
+        display: inline-block !important;
+    }
+
+    .goog-te-gadget-simple {
+        font-family: inherit !important;
+    }
+
+    .goog-te-gadget-icon {
+        display: none !important;
+    }
+
+    /* Fix alignment */
+    #google_translate_element {
+        display: inline-block;
+        vertical-align: middle;
+    }
+</style>
 @push('scripts')
     <script>
         $(document).ready(function () {

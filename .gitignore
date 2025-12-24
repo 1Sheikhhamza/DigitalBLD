@@ -38,3 +38,4 @@ application/*-*-2025_*/
 *.tar.gz
 
 application/.env
+DigitalBLD_Source_Code.zip

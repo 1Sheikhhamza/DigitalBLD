@@ -80,7 +80,7 @@
         .action-link {
             text-decoration: none;
             color: #333;
-            margin: 0 10px;
+            margin: 0 5px;
             font-size: 0.9rem;
             white-space: nowrap;
         }
@@ -112,6 +112,24 @@
             border: none !important;
             padding: 0 !important;
             font-size: 13px !important;
+            font-family: inherit !important;
+        }
+
+        .goog-te-gadget-simple .goog-te-menu-value {
+            color: transparent !important;
+            font-size: 0 !important;
+        }
+
+        .goog-te-gadget-simple .goog-te-menu-value span {
+            display: none !important;
+        }
+
+        .goog-te-gadget-simple .goog-te-menu-value img {
+            display: inline-block !important;
+        }
+
+        .goog-te-gadget-icon {
+            display: none !important;
         }
 
         /* Force header to be static (scroll with page) to match subscriber view */
@@ -167,7 +185,7 @@
 @section('content')
 
     <!-- Top Action Bar -->
-    <div class="container mt-4">
+    <div class="container-fluid mt-4">
         <div class="top-action-bar mb-3">
             <div class="row align-items-center w-100 g-2">
                 <!-- Left: Back Button -->
@@ -179,7 +197,7 @@
 
                 <!-- Center: Action Buttons -->
                 <div class="col-md-9 col-12">
-                    <div class="text-center d-flex align-items-center justify-content-center flex-wrap">
+                    <div class="text-center d-flex align-items-center justify-content-center flex-nowrap">
                         <a href="{{ route('preview.judgment.print', [$data->id, 'print']) }}" class="action-link"
                             target="_blank">
                             <i class="bi bi-printer"></i> Print
@@ -193,8 +211,17 @@
                             <i class="bi bi-stars"></i> Summarize
                         </a>
 
+                        <!-- Read Aloud Button -->
+                        <a href="#" class="action-link" id="read-aloud-btn" onclick="toggleReadAloud(event)">
+                            <i class="bi bi-play-circle"></i> <span id="read-aloud-text">Read Aloud</span>
+                        </a>
+                        <a href="#" class="action-link text-danger" id="stop-read-aloud-btn" onclick="stopReadAloud(event)"
+                            style="display: none;">
+                            <i class="bi bi-stop-circle"></i> Stop
+                        </a>
+
                         <div class="action-link d-flex align-items-center">
-                            <label class="me-1 mb-0">Translator:</label>
+                            <span class="me-1">Translator</span>
                             <div id="google_translate_element"></div>
                         </div>
 
@@ -224,7 +251,7 @@
 
     <!-- Main Document Content -->
     <div class="container mt-5">
-        <div class="container document-container">
+        <div class="container document-container" id="judgment-content">
 
             <div class="document-header text-center">
                 <h4>In the Supreme Court of Bangladesh ({{ $data->division }})</h4>
@@ -340,6 +367,229 @@
 @endsection
 
 @push('scripts')
+    <script>
+        let currentUtterance = null;
+        let isReading = false;
+        let isPaused = false;
+        let boundaries = [];
+
+        function wrapWordsInElement(element, wordIndexRef) {
+            const childNodes = Array.from(element.childNodes);
+            childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    if (!text.trim()) return;
+                    const words = text.split(/(\s+)/);
+                    const fragment = document.createDocumentFragment();
+                    words.forEach(word => {
+                        if (word.trim().length > 0) {
+                            const span = document.createElement('span');
+                            span.textContent = word;
+                            span.id = `tts-word-${wordIndexRef.count}`;
+                            span.className = 'tts-word-span pointer-cursor';
+                            span.style.cursor = 'pointer';
+                            span.onclick = (e) => handleWordClick(e, wordIndexRef.count);
+                            fragment.appendChild(span);
+                            wordIndexRef.count++;
+                        } else {
+                            fragment.appendChild(document.createTextNode(word));
+                        }
+                    });
+                    node.replaceWith(fragment);
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.classList.contains('tts-word-span')) return;
+                    wrapWordsInElement(node, wordIndexRef);
+                }
+            });
+        }
+
+        function unwrapWords(element) {
+            const spans = element.querySelectorAll('span.tts-word-span');
+            spans.forEach(span => {
+                const text = document.createTextNode(span.textContent);
+                span.replaceWith(text);
+            });
+            element.normalize();
+        }
+
+        function stopReadAloud(e) {
+            if (e) e.preventDefault();
+            window.speechSynthesis.cancel();
+            resetTTSState();
+        }
+
+        function resetTTSState() {
+            const btnText = document.getElementById('read-aloud-text');
+            const icon = document.querySelector('#read-aloud-btn i');
+            const stopBtn = document.getElementById('stop-read-aloud-btn');
+            const container = document.getElementById('judgment-content');
+
+            isReading = false;
+            isPaused = false;
+
+            if (btnText) btnText.innerText = 'Read Aloud';
+            if (icon) icon.className = 'bi bi-play-circle';
+            if (stopBtn) stopBtn.style.display = 'none';
+
+            currentUtterance = null;
+            if (window.activeHighlightSpanId) {
+                const old = document.getElementById(window.activeHighlightSpanId);
+                if (old) old.classList.remove('bg-warning', 'text-dark');
+                window.activeHighlightSpanId = null;
+            }
+            unwrapWords(container);
+        }
+
+        function handleWordClick(e, wordIndex) {
+            if (!isReading && !isPaused) {
+                startReadAloud(wordIndex);
+            } else {
+                window.speechSynthesis.cancel();
+                startReadAloud(wordIndex);
+            }
+            e.stopPropagation();
+        }
+
+        function startReadAloud(startIndex = 0) {
+            const container = document.getElementById('judgment-content');
+            const btnText = document.getElementById('read-aloud-text');
+            const icon = document.querySelector('#read-aloud-btn i');
+            const stopBtn = document.getElementById('stop-read-aloud-btn');
+
+            const spans = container.querySelectorAll('span.tts-word-span');
+            if (spans.length === 0) {
+                const wordCounter = { count: 0 };
+                wrapWordsInElement(container, wordCounter);
+            }
+
+            const domSpans = Array.from(container.querySelectorAll('span.tts-word-span'));
+            if (domSpans.length === 0) {
+                alert("No text found.");
+                return;
+            }
+
+            let startOffset = 0;
+            if (startIndex > 0 && startIndex < domSpans.length) {
+                const range = document.createRange();
+                range.setStart(container, 0);
+                range.setEndBefore(domSpans[startIndex]);
+                startOffset = range.toString().length;
+            }
+
+            const fullText = container.textContent;
+            const textToSpeak = fullText.slice(startOffset);
+
+            if (!textToSpeak.trim()) return;
+
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            isReading = true;
+            isPaused = false;
+            btnText.innerText = 'Pause';
+            icon.className = 'bi bi-pause-circle';
+            stopBtn.style.display = 'inline-block';
+
+            window.activeHighlightSpanId = null;
+
+            const allBoundaries = [];
+            let globalCursor = 0;
+            function buildMap(element) {
+                const childNodes = Array.from(element.childNodes);
+                childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        globalCursor += node.textContent.length;
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.classList.contains('tts-word-span')) {
+                            const len = node.textContent.length;
+                            allBoundaries.push({
+                                start: globalCursor,
+                                end: globalCursor + len,
+                                id: node.id
+                            });
+                            globalCursor += len;
+                        } else {
+                            buildMap(node);
+                        }
+                    }
+                });
+            }
+            globalCursor = 0;
+            buildMap(container);
+            boundaries = allBoundaries;
+
+            utterance.onboundary = function (event) {
+                if (event.name === 'word') {
+                    const absIndex = event.charIndex + startOffset;
+                    const closest = boundaries.find(b => absIndex >= b.start && absIndex < b.end);
+
+                    if (closest && closest.id !== window.activeHighlightSpanId) {
+                        if (window.activeHighlightSpanId) {
+                            const old = document.getElementById(window.activeHighlightSpanId);
+                            if (old) old.classList.remove('bg-warning', 'text-dark');
+                        }
+
+                        window.activeHighlightSpanId = closest.id;
+                        const newSpan = document.getElementById(window.activeHighlightSpanId);
+                        if (newSpan) {
+                            newSpan.classList.add('bg-warning', 'text-dark');
+                        }
+                    }
+                }
+            };
+
+            utterance.onend = function () {
+                resetTTSState();
+            };
+
+            utterance.onerror = function (event) {
+                if (event.error !== 'interrupted') {
+                    resetTTSState();
+                }
+            };
+
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleReadAloud(e) {
+            if (e) e.preventDefault();
+
+            const btnText = document.getElementById('read-aloud-text');
+            const icon = document.querySelector('#read-aloud-btn i');
+
+            if (isReading) {
+                if (isPaused) {
+                    window.speechSynthesis.resume();
+                    isPaused = false;
+                    btnText.innerText = 'Pause';
+                    icon.className = 'bi bi-pause-circle';
+                } else {
+                    window.speechSynthesis.pause();
+                    isPaused = true;
+                    btnText.innerText = 'Resume';
+                    icon.className = 'bi bi-play-circle';
+                }
+            } else {
+                startReadAloud(0);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('judgment-content');
+            if (container) {
+                container.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('tts-word-span')) {
+                        const parts = e.target.id.split('-');
+                        const index = parseInt(parts[2]);
+                        if (!isNaN(index)) {
+                            handleWordClick(e, index);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
     <script>
         $(document).ready(function () {
             // AI Summarize Logic
