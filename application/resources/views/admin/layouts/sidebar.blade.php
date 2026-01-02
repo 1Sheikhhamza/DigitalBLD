@@ -365,9 +365,16 @@
                         <ul class="nav nav-treeview">
                             @can('ocr_extractions.view')
                                 <li class="nav-item">
-                                    <a href="{{ route('ocr_extractions.index') }}" class="nav-link">
+                                    <a href="{{ route('ocr_extractions.index', ['division_type' => 'BLD']) }}" class="nav-link">
                                         <i class="nav-icon bi bi-list"></i>
-                                        <p>Decision List</p>
+                                        <p>BLD Decisions</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('ocr_extractions.index', ['division_type' => 'SCOB']) }}"
+                                        class="nav-link">
+                                        <i class="nav-icon bi bi-list"></i>
+                                        <p>SCOB Decisions</p>
                                     </a>
                                 </li>
                             @endcan
@@ -509,58 +516,58 @@
                 {{-- Career --}}
                 @if(hasAnyPermissionOnResource('careers'))
                     <!-- <li class="nav-item">
-                                        <a href="#" class="nav-link">
-                                            <i class="nav-icon bi bi-file"></i>
-                                            <p>Career Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
-                                        </a>
-                                        <ul class="nav nav-treeview">
-                                            @can('careers.view')
-                                            <li class="nav-item">
-                                                <a href="{{ route('careers.index') }}" class="nav-link">
-                                                    <i class="nav-icon bi bi-list"></i>
-                                                    <p>Career List</p>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                            @can('careers.create')
-                                            <li class="nav-item">
-                                                <a href="{{ route('careers.create') }}" class="nav-link">
-                                                    <i class="nav-icon bi bi-plus-circle"></i>
-                                                    <p>New Career</p>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                        </ul>
-                                    </li> -->
+                                            <a href="#" class="nav-link">
+                                                <i class="nav-icon bi bi-file"></i>
+                                                <p>Career Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
+                                            </a>
+                                            <ul class="nav nav-treeview">
+                                                @can('careers.view')
+                                                <li class="nav-item">
+                                                    <a href="{{ route('careers.index') }}" class="nav-link">
+                                                        <i class="nav-icon bi bi-list"></i>
+                                                        <p>Career List</p>
+                                                    </a>
+                                                </li>
+                                                @endcan
+                                                @can('careers.create')
+                                                <li class="nav-item">
+                                                    <a href="{{ route('careers.create') }}" class="nav-link">
+                                                        <i class="nav-icon bi bi-plus-circle"></i>
+                                                        <p>New Career</p>
+                                                    </a>
+                                                </li>
+                                                @endcan
+                                            </ul>
+                                        </li> -->
                 @endif
 
 
                 {{-- Inquiry --}}
                 @if(hasAnyPermissionOnResource('inquiries'))
                     <!-- <li class="nav-item">
-                                        <a href="#" class="nav-link">
-                                            <i class="nav-icon bi bi-question-lg"></i>
-                                            <p>Inquiry Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
-                                        </a>
-                                        <ul class="nav nav-treeview">
-                                            @can('inquiries.view')
-                                            <li class="nav-item">
-                                                <a href="{{ route('inquiries.index') }}" class="nav-link">
-                                                    <i class="nav-icon bi bi-list"></i>
-                                                    <p>Inquiry List</p>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                            @can('inquiries.create')
-                                            <li class="nav-item">
-                                                <a href="{{ route('inquiries.create') }}" class="nav-link">
-                                                    <i class="nav-icon bi bi-plus-circle"></i>
-                                                    <p>New Inquiry</p>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                        </ul>
-                                    </li> -->
+                                            <a href="#" class="nav-link">
+                                                <i class="nav-icon bi bi-question-lg"></i>
+                                                <p>Inquiry Manage <i class="nav-arrow bi bi-chevron-right"></i></p>
+                                            </a>
+                                            <ul class="nav nav-treeview">
+                                                @can('inquiries.view')
+                                                <li class="nav-item">
+                                                    <a href="{{ route('inquiries.index') }}" class="nav-link">
+                                                        <i class="nav-icon bi bi-list"></i>
+                                                        <p>Inquiry List</p>
+                                                    </a>
+                                                </li>
+                                                @endcan
+                                                @can('inquiries.create')
+                                                <li class="nav-item">
+                                                    <a href="{{ route('inquiries.create') }}" class="nav-link">
+                                                        <i class="nav-icon bi bi-plus-circle"></i>
+                                                        <p>New Inquiry</p>
+                                                    </a>
+                                                </li>
+                                                @endcan
+                                            </ul>
+                                        </li> -->
                 @endif
 
                 {{-- Team --}}

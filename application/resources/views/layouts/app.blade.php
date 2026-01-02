@@ -111,7 +111,7 @@
         <div class="col-2 d-flex justify-content-start">
           <a href="{{ route('home') }}" class="logo d-flex align-items-center me-auto">
             <img src="{{ asset('frontend/assets/img/logo.png') }}" style="padding: 0; max-height: 80px;">
-            <span class="sitename">Digital BLD</span>
+            <span class="sitename" style="white-space: nowrap;">Digital BLD</span>
           </a>
         </div>
 

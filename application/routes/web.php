@@ -196,6 +196,12 @@ Route::prefix('subscriber')->group(function () {
             ->name('search.parties.suggestions')
             ->middleware('has.subscription');
 
+        // SCOB Volume (Year-based) - accessible with subscription
+        Route::get('scobVolume', [LegalSearchController::class, 'scobVolume'])->name('scobVolume')->middleware('has.subscription');
+        Route::get('/scobYearIndex/{year}', [LegalSearchController::class, 'scobYearIndex'])->name('scobYear.index')->middleware('has.subscription');
+        Route::get('/scobYearAppellate/{year}', [LegalSearchController::class, 'scobYearAppellate'])->name('scobYear.appellate')->middleware('has.subscription');
+        Route::get('/scobYearHighCourt/{year}', [LegalSearchController::class, 'scobYearHighCourt'])->name('scobYear.highcourt')->middleware('has.subscription');
+
         // Protected routes that require active subscription
         Route::middleware(['has.subscription', 'check.subscriber.permission'])->group(function () {
             // Legal Search
@@ -210,6 +216,7 @@ Route::prefix('subscriber')->group(function () {
             Route::get('/legalDecisionIndex/{volume_id}', [LegalSearchController::class, 'legalDecisionIndex'])->name('volume.index');
             Route::get('/legalDecisionAppellate/{volume_id}', [LegalSearchController::class, 'legalDecisionAppellate'])->name('volume.appellate');
             Route::get('/legalDecisionHighCourt/{volume_id}', [LegalSearchController::class, 'legalDecisionHighCourt'])->name('volume.highcourt');
+
 
             // Single Legal Decision
             Route::get('myDecision/{id}', [LegalSearchController::class, 'myDecision'])->name('myDecision');
@@ -398,6 +405,7 @@ Route::prefix('admin')->middleware('auth:administration')->group(function () {
         Route::get('subscribers/export', [SubscriberController::class, 'export'])->name('subscribers.export');
         Route::resource('subscribers', SubscriberController::class);
         Route::resource('subscriptions', SubscriptionController::class);
+        Route::post('ocr_extractions/upload-scob-pdf', [OCRExtractionController::class, 'uploadScobPdf'])->name('ocr_extractions.upload_scob_pdf');
         Route::resource('ocr_extractions', OCRExtractionController::class);
         Route::resource('blogs', BlogController::class);
         Route::resource('clients', ClientController::class);
@@ -446,5 +454,8 @@ Route::prefix('admin')->middleware('auth:administration')->group(function () {
     });
 
 });
+
+
+
 
 

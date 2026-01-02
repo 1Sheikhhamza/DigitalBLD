@@ -34,13 +34,14 @@ class OCRExtractionController extends Controller
     public function index(Request $request)
     {
         $filters = [
-            'case_no'        => $request->get('case_no'),
-            'parties'        => $request->get('parties'),
-            'division'       => $request->get('division'),
-            'volume_id'      => $request->get('volume_id'),
+            'case_no' => $request->get('case_no'),
+            'parties' => $request->get('parties'),
+            'division' => $request->get('division'),
+            'volume_id' => $request->get('volume_id'),
             'published_year' => $request->get('published_year'),
-            'judgename'      => $request->get('judgename'),
-            'homepage'      => $request->get('homepage'),
+            'judgename' => $request->get('judgename'),
+            'homepage' => $request->get('homepage'),
+            'division_type' => $request->get('division_type'),
         ];
 
         $ocr_extractions = $this->ocrExtractionService->index($filters);
@@ -74,7 +75,20 @@ class OCRExtractionController extends Controller
             $validated['index_file'] = $fileName;
         }
 
-        // dd($validated);
+        // Debug logging for file_path
+        if (isset($validated['file_path'])) {
+            \Illuminate\Support\Facades\Log::info("OCRExtraction Store: file_path present: " . $validated['file_path']);
+        } else {
+            \Illuminate\Support\Facades\Log::warning("OCRExtraction Store: file_path MISSING in validated data");
+            if ($request->has('file_path')) {
+                \Illuminate\Support\Facades\Log::info("OCRExtraction Store: file_path present in Request but not Validated: " . $request->input('file_path'));
+                // Manually add it back if validation stripped it (shouldn't if rule exists)
+                $validated['file_path'] = $request->input('file_path');
+            } else {
+                \Illuminate\Support\Facades\Log::error("OCRExtraction Store: file_path completely missing from input");
+            }
+        }
+
         $this->ocrExtractionService->create($validated);
 
         // Redirect back to the list with success message
@@ -99,7 +113,7 @@ class OCRExtractionController extends Controller
     {
         $ocrExtraction = $this->ocrExtractionService->find($id);
         $judgmentTextFormatted = $this->judgmentText($ocrExtraction->judgment);
-        return view('admin.ocr_extractions.show', compact('ocrExtraction','judgmentTextFormatted'));
+        return view('admin.ocr_extractions.show', compact('ocrExtraction', 'judgmentTextFormatted'));
     }
 
     private function judgmentText($text)
@@ -188,4 +202,50 @@ class OCRExtractionController extends Controller
         $this->ocrExtractionService->forceDelete($id);
         return redirect()->route('ocr_extractions.index')->with('success', 'OCRExtraction permanently deleted.');
     }
+
+    public function uploadScobPdf(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf|max:10240', // 10MB max
+        ]);
+
+        try {
+            if ($request->hasFile('file') && $request->file('file')->isValid()) {
+                $file = $request->file('file');
+                $filename = uniqid('scob_') . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('storage/scob'); // Ensure this matches Ingest command path or standard path
+
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+
+                $file->move($destinationPath, $filename);
+                $filePath = $destinationPath . '/' . $filename;
+                $publicPath = 'storage/scob/' . $filename;
+
+                // Extract Text
+                // Note: We need to use extractText from Service, which handles PDF parsing
+                // Since extractText is public in Service, we can use it.
+                // Assuming extension is 'pdf'
+                $text = $this->ocrExtractionService->extractText($filePath, 'pdf');
+
+                // Extract Metadata
+                // Use AI for better extraction
+                $metadata = $this->ocrExtractionService->extractMetadataWithAi($text);
+
+                return response()->json([
+                    'success' => true,
+                    'file_path' => $publicPath,
+                    'judgment_text' => $text,
+                    'metadata' => $metadata
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("SCOB Upload Error: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Upload failed'], 400);
+    }
 }
+

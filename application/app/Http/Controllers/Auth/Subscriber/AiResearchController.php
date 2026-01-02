@@ -36,13 +36,37 @@ class AiResearchController extends BaseController
         // 1. Search Database for Context (RAG) - Hybrid Approach
         $searchResults = collect([]);
         $searchSource = "None";
-
         try {
             // Attempt 1: Full Text Search via Scout (Meilisearch)
-            $searchResults = OCRExtraction::search($userQuery)->take(5)->get();
+            $searchResults = OCRExtraction::search($userQuery)->take(7)->get();
+
+            // Check for SCOB presence
+            $hasScob = $searchResults->contains(function ($item) {
+                return $item->division === 'SCOB';
+            });
+
+            // If no SCOB results found in top hits, try to fetch some explicitly via SQL to ensure diversity
+            if (!$hasScob && $searchResults->count() > 0) {
+                \Illuminate\Support\Facades\Log::info("No SCOB results in Scout. Attempting SQL injection for SCOB.");
+                $scobResults = OCRExtraction::where('division', 'SCOB')
+                    ->where(function ($q) use ($userQuery) {
+                        $q->where('judgment', 'LIKE', "%{$userQuery}%")
+                            ->orWhere('parties', 'LIKE', "%{$userQuery}%")
+                            ->orWhere('key_words', 'LIKE', "%{$userQuery}%");
+                    })
+                    ->inRandomOrder()
+                    ->take(3)
+                    ->get();
+
+                if ($scobResults->count() > 0) {
+                    \Illuminate\Support\Facades\Log::info("Injected " . $scobResults->count() . " SCOB results.");
+                    $searchResults = $searchResults->merge($scobResults);
+                }
+            }
+
             if ($searchResults->count() > 0) {
-                $searchSource = "Scout/Meilisearch";
-                \Illuminate\Support\Facades\Log::info("Scout Search Success: " . $searchResults->count() . " results.");
+                $searchSource = "Scout/Meilisearch + SQL Filter";
+                \Illuminate\Support\Facades\Log::info("Search Success: " . $searchResults->count() . " results.");
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning("Scout Search Failed (likely offline): " . $e->getMessage());
@@ -107,11 +131,24 @@ class AiResearchController extends BaseController
             $subject = $result->subject ?? "";
             $acts = $result->related_act_order_rule ?? "";
 
+            $fileLink = $result->file_path ? asset($result->file_path) : null;
+            $isScob = !empty($result->file_path) || $result->division === 'SCOB';
+
+            // Citation Logic
+            if ($isScob) {
+                $citation = "SCOB: " . ($result->case_no ?? "Unknown Case") . "; " . ($result->parties ?? "Unknown Parties");
+            } else {
+                $citation = "{$volume} BLD {$page}";
+            }
+
             // Structured Context for AI - HIGH DETAIL
             $context .= "Source ID: {$result->id}\n";
             $context .= "Parties: {$caseTitle}\n";
             $context .= "Case No: {$caseNo}\n";
-            $context .= "Citation: {$volume} BLD {$page}\n";
+            $context .= "Citation: {$citation}\n";
+            if ($fileLink) {
+                $context .= "PDF Link: {$fileLink}\n";
+            }
             $context .= "Year: {$caseYear}\n";
             $context .= "Decided On: {$decidedOn}\n";
             $context .= "Division: {$division}\n";
@@ -124,7 +161,9 @@ class AiResearchController extends BaseController
             $sources[] = [
                 'id' => $result->id,
                 'title' => $caseTitle,
-                'year' => $caseYear
+                'year' => $caseYear,
+                'citation' => $citation,
+                'link' => $fileLink // Add link for frontend
             ];
         }
 
@@ -144,18 +183,20 @@ class AiResearchController extends BaseController
         - You MUST use the exact structure below for your response.
         - Present the Main Case(s) found in this layout:
 
-        - **Case [N]: Citation: Vol [Volume] BLD [Page] [Division]**
+        - **Case [N]: [Citation]**
           * **Case Number**: [Case No]
           * **Parties**: [Parties Name]
           * **Decided On**: [Date]
           * **Subject**: [Subject]
            
-        **Source**: Vol [Volume] BLD [Page] [Division]
+        **Source**: [Citation]
 
         [If multiple cases, repeat the block above for each one]
 
         Important Notes:
         - Replace [Bracketed Text] with actual data. 
+        - For BLD cases, Citation format: Vol [Volume] BLD [Page] [Division]
+        - For SCOB/PDF cases, Citation format: SCOB: [Case No]; [Parties]
         - If 'Page' assumes a range (e.g. 168 to 196), use it. otherwise just use the starting page.
         - Ensure 'Parties' are UPPERCASE.
         - Do not add any other introductory text.

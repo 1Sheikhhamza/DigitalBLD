@@ -50,6 +50,24 @@ $months = [
                             <h3 class="card-title">Legal Decision</h3>
                         </div>
 
+                         <!-- Auto-Fill Section -->
+                        <div class="card-body border-bottom bg-light">
+                            <div class="row align-items-end">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold text-success"><i class="bi bi-magic"></i> Auto-Fill from SCOB PDF</label>
+                                    <input type="file" id="scobPdfInput" class="form-control" accept="application/pdf">
+                                    <small class="text-muted">Upload a SCOB judgment PDF to automatically extract text and metadata.</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" id="btnAutoFill" class="btn btn-success w-100">
+                                        <span id="btnAutoFillText">Upload & Auto-Fill</span>
+                                        <span id="btnAutoFillLoading" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    </button>
+                                </div>
+                                <div id="uploadMessage" class="col-12 mt-2"></div>
+                            </div>
+                        </div>
+
                         <div class="card-body">
                             <div class="row">
                                 <!-- Column 1 -->
@@ -60,6 +78,9 @@ $months = [
                                             <option value="">-- Select Division --</option>
                                             <option value="Appellate Division" {{ old('division') == 'Appellate Division' ? 'selected' : '' }}>Appellate Division</option>
                                             <option value="High Court Division" {{ old('division') == 'High Court Division' ? 'selected' : '' }}>High Court Division</option>
+                                            <option value="SCOB" {{ old('division') == 'SCOB' ? 'selected' : '' }}>SCOB (Generic)</option>
+                                            <option value="SCOB - Appellate Division" {{ old('division') == 'SCOB - Appellate Division' ? 'selected' : '' }}>SCOB - Appellate Division</option>
+                                            <option value="SCOB - High Court Division" {{ old('division') == 'SCOB - High Court Division' ? 'selected' : '' }}>SCOB - High Court Division</option>
                                         </select>
                                     </div>
                                 </div>
@@ -201,6 +222,7 @@ $months = [
                             </div>
                         </div>
                     </div>
+                    <input type="hidden" name="file_path" id="hiddenFilePath">
                 </form>
 
 
@@ -251,5 +273,107 @@ $months = [
                 modal.hide();
             });
         });
+
+         // SCOB Auto-Fill Logic
+         document.getElementById('btnAutoFill').addEventListener('click', function() {
+            const fileInput = document.getElementById('scobPdfInput');
+            const file = fileInput.files[0];
+            const msgDiv = document.getElementById('uploadMessage');
+            const btnText = document.getElementById('btnAutoFillText');
+            const btnLoading = document.getElementById('btnAutoFillLoading');
+
+            if (!file) {
+                alert("Please select a PDF file first.");
+                return;
+            }
+
+            // Show Loading
+            btnText.classList.add('d-none');
+            btnLoading.classList.remove('d-none');
+            msgDiv.innerHTML = '<div class="alert alert-info">Processing PDF... This may take a few seconds.</div>';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            // Append CSRF Token
+            formData.append('_token', '{{ csrf_token() }}');
+
+            fetch("{{ route('ocr_extractions.upload_scob_pdf') }}", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide Loading
+                btnText.classList.remove('d-none');
+                btnLoading.classList.add('d-none');
+
+                if (data.success) {
+                    msgDiv.innerHTML = '<div class="alert alert-success">Successfully extracted data!</div>';
+                    
+                    // Fill Fields
+                    
+                    // Division -> AI or default SCOB
+                    if(divisionSelect) {
+                         if(data.metadata.division) {
+                             const divLower = data.metadata.division.toLowerCase();
+                             if (divLower.includes('appellate')) divisionSelect.value = 'SCOB - Appellate Division';
+                             else if (divLower.includes('high court')) divisionSelect.value = 'SCOB - High Court Division';
+                             else divisionSelect.value = 'SCOB';
+                         } else {
+                             divisionSelect.value = 'SCOB';
+                         }
+                    }
+
+                    // File Path
+                    if(data.file_path) document.getElementById('hiddenFilePath').value = data.file_path;
+
+                    // Text Inputs
+                    const safeSet = (name, val) => {
+                        const el = document.querySelector(`input[name="${name}"]`);
+                        if(el && val) el.value = val;
+                    };
+
+                    safeSet('case_no', data.metadata.case_no);
+                    safeSet('published_year', data.metadata.published_year);
+                    safeSet('decided_on', data.metadata.decision_date);
+                    safeSet('judge_name', data.metadata.judges);
+                    safeSet('result', data.metadata.result);
+                    safeSet('related_act_order_rule', data.metadata.related_act_order_rule);
+                    safeSet('key_words', data.metadata.key_words);
+
+                    // CKEditor / Textarea Fields
+                    const setEditor = (name, val) => {
+                        if(!val) return;
+                        try {
+                            if (typeof CKEDITOR !== 'undefined' && CKEDITOR.instances[name]) {
+                                CKEDITOR.instances[name].setData(val);
+                            } else {
+                                const el = document.querySelector(`textarea[name="${name}"]`);
+                                if(el) el.value = val;
+                            }
+                        } catch(e) { 
+                            const el = document.querySelector(`textarea[name="${name}"]`);
+                            if(el) el.value = val;
+                        }
+                    };
+
+                    setEditor('parties', data.metadata.parties);
+                    setEditor('subject', data.metadata.subject);
+                    setEditor('petitioners', data.metadata.petitioners);
+                    setEditor('respondent', data.metadata.respondent);
+
+                    // Judgment Text
+                    if(data.judgment_text) setEditor('judgment', data.judgment_text);
+                    
+                } else {
+                     msgDiv.innerHTML = '<div class="alert alert-danger">Error: ' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                btnText.classList.remove('d-none');
+                btnLoading.classList.add('d-none');
+                msgDiv.innerHTML = '<div class="alert alert-danger">Upload failed: ' + error + '</div>';
+            });
+         });
     });
 </script>

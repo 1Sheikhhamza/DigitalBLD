@@ -755,4 +755,112 @@ class LegalSearchController extends BaseController
 
         return view('auth.subscribers.profile.highcourt', compact('volumeData', 'highCourtDecisions', 'allVolumes'));
     }
+
+    // SCOB Volume Methods (Year-based from published_year or case_no regex)
+    public function scobVolume(Request $request)
+    {
+        // Extract filing year using Regex: finds /YYYY or "of YYYY" pattern
+        // Or use published_year column if available
+        $yearList = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->selectRaw("COALESCE(published_year, RIGHT(REGEXP_SUBSTR(case_no, '(/[0-9]{4}|of [0-9]{4})'), 4)) as year, COUNT(*) as count")
+            ->where(function ($q) {
+                $q->whereNotNull('published_year')
+                    ->orWhereRaw("case_no REGEXP '(/[0-9]{4}|of [0-9]{4})'");
+            })
+            ->groupBy('year')
+            ->orderBy('year', 'desc')
+            ->get()
+            ->filter(function ($item) {
+                return is_numeric($item->year) && $item->year >= 1900 && $item->year <= 2099;
+            });
+
+        return view('auth.subscribers.profile.scob_volume', compact('yearList'));
+    }
+
+    public function scobYearIndex($year)
+    {
+        // Logic: Use published_year = $year OR regex matches year
+        $appellateDecisions = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->where(function ($q) use ($year) {
+                $q->where('published_year', $year)
+                    ->orWhereRaw("RIGHT(REGEXP_SUBSTR(case_no, '(/[0-9]{4}|of [0-9]{4})'), 4) = ?", [$year]);
+            })
+            ->where(function ($q) {
+                // Check if it is Appellate or Generic SCOB (assume Generic is Appellate for now or separate?)
+                // If division is 'SCOB - High Court Division', disqualify it
+                $q->where('division', 'LIKE', '%Appellate%')
+                    ->orWhere('division', '=', 'SCOB');
+            })
+            ->select('id', 'case_no', 'parties', 'decided_on')
+            ->orderBy('case_no', 'desc')
+            ->get();
+
+        $highCourtDecisions = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->where(function ($q) use ($year) {
+                $q->where('published_year', $year)
+                    ->orWhereRaw("RIGHT(REGEXP_SUBSTR(case_no, '(/[0-9]{4}|of [0-9]{4})'), 4) = ?", [$year]);
+            })
+            ->where('division', 'LIKE', '%High Court%')
+            ->select('id', 'case_no', 'parties', 'decided_on')
+            ->orderBy('case_no', 'desc')
+            ->get();
+
+        $allYears = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->selectRaw("DISTINCT COALESCE(published_year, RIGHT(REGEXP_SUBSTR(case_no, '(/[0-9]{4}|of [0-9]{4})'), 4)) as year")
+            ->where(function ($q) {
+                $q->whereNotNull('published_year')
+                    ->orWhereRaw("case_no REGEXP '(/[0-9]{4}|of [0-9]{4})'");
+            })
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter(function ($y) {
+                return is_numeric($y) && $y >= 1900 && $y <= 2099;
+            });
+
+        return view('auth.subscribers.profile.scob_year_index', compact('year', 'appellateDecisions', 'highCourtDecisions', 'allYears'));
+    }
+
+    public function scobYearAppellate($year)
+    {
+        $appellateDecisions = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->whereRaw('SUBSTRING(REGEXP_SUBSTR(case_no, "/[0-9]{4}"), 2) = ?', [$year])
+            ->where(function ($q) {
+                $q->where('division', 'LIKE', '%Appellate%')->orWhere('division', '=', 'SCOB');
+            })
+            ->select('id', 'case_no', 'parties', 'decided_on', 'judgment')
+            ->orderBy('case_no', 'desc')
+            ->paginate(30);
+
+        $allYears = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->whereNotNull('case_no')
+            ->selectRaw('DISTINCT SUBSTRING(REGEXP_SUBSTR(case_no, "/[0-9]{4}"), 2) as year')
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter(function ($y) {
+                return is_numeric($y) && $y >= 1900 && $y <= 2099;
+            });
+
+        return view('auth.subscribers.profile.scob_year_appellate', compact('year', 'appellateDecisions', 'allYears'));
+    }
+
+    public function scobYearHighCourt($year)
+    {
+        $highCourtDecisions = OCRExtraction::where('division', 'LIKE', 'SCOB%')
+            ->whereRaw('SUBSTRING(REGEXP_SUBSTR(case_no, "/[0-9]{4}"), 2) = ?', [$year])
+            ->where('division', 'LIKE', '%High Court%')
+            ->select('id', 'case_no', 'parties', 'decided_on', 'judgment')
+            ->orderBy('case_no', 'desc')
+            ->paginate(30);
+
+        $allYears = OCRExtraction::where('division', 'SCOB')
+            ->whereNotNull('case_no')
+            ->selectRaw('DISTINCT SUBSTRING(REGEXP_SUBSTR(case_no, "/[0-9]{4}"), 2) as year')
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter(function ($y) {
+                return is_numeric($y) && $y >= 1900 && $y <= 2099;
+            });
+
+        return view('auth.subscribers.profile.scob_year_highcourt', compact('year', 'highCourtDecisions', 'allYears'));
+    }
 }

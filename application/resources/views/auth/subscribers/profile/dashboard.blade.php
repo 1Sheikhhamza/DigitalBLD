@@ -71,6 +71,15 @@
                             </div>
                         @endif
 
+                        @if(auth('subscriber')->user()->hasAnyPermissionOnResource('bld-volume'))
+                            <div class="service-card">
+                                <a href="{{ route('subscriber.scobVolume') }}">
+                                    <i class="bi bi-book-fill"></i>
+                                    <span>SCOB Volume</span>
+                                </a>
+                            </div>
+                        @endif
+
                         <div class="service-card">
                             <a href="{{ route('subscriber.supremeSearch') }}">
                                 <i class="bi bi-search"></i>

@@ -34,6 +34,13 @@
                         <i class="bi bi-download"></i> Download
                     </a>
 
+                    @if($data->file_path)
+                        <a href="{{ asset($data->file_path) }}" class="action-link" target="_blank"
+                            title="View Original PDF">
+                            <i class="bi bi-file-earmark-pdf text-danger"></i> View PDF
+                        </a>
+                    @endif
+
                     @if(auth('subscriber')->user()->canAccessModule('ai.summary'))
                         <a href="#" class="action-link" id="summarize-btn" data-id="{{ $data->id }}" data-bs-toggle="modal"
                             data-bs-target="#aiSummaryModal">
@@ -77,8 +84,8 @@
                                 <i class="bi bi-pencil"></i> Edit My Note
                             </a>
                             <!-- <a href="{{ route('subscriber.shared.decisions') }}" class="action-link">
-                                                                                                                                            <i class="bi bi-share"></i> Shared with Me
-                                                                                                                                        </a> -->
+                                                                                                                                                    <i class="bi bi-share"></i> Shared with Me
+                                                                                                                                                </a> -->
                         @endif
                     @endif
                     @if(!$myDecision)

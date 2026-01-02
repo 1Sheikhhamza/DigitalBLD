@@ -33,6 +33,14 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
             $query->where('division', $filters['division']);
         }
 
+        if (!empty($filters['division_type'])) {
+            if ($filters['division_type'] === 'SCOB') {
+                $query->where('division', 'SCOB');
+            } elseif ($filters['division_type'] === 'BLD') {
+                $query->where('division', '!=', 'SCOB');
+            }
+        }
+
         if (!empty($filters['volume_id'])) {
             $query->where('volume_id', $filters['volume_id']);
         }
@@ -96,6 +104,7 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
             'case_no' => $data['case_no'] ?? null,
             'jurisdiction' => $data['jurisdiction'] ?? null,
             'judgment' => $data['judgment'] ?? null,
+            'file_path' => $data['file_path'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -185,6 +194,7 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
             'case_no' => $data['case_no'] ?? $currentData->case_no,
             'jurisdiction' => $data['jurisdiction'] ?? $currentData->jurisdiction,
             'judgment' => $data['judgment'] ?? $currentData->judgment,
+            'file_path' => $data['file_path'] ?? $currentData->file_path,
             'updated_at' => now(),
         ];
 

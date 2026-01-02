@@ -34,7 +34,7 @@ class OCRExtraction extends Model
 
     protected $guarded = ['id'];
 
-    protected $fillable = [];
+    // protected $fillable = [];
 
     // protected $dates = ['decided_on'];   
 

@@ -36,6 +36,12 @@
         </a>
     </li>
     <li>
+        <a href="{{ route('subscriber.scobVolume') }}"
+            class="text-white text-decoration-none {{ Route::currentRouteName() === 'subscriber.scobVolume' ? 'active' : '' }}">
+            SCOB Volume
+        </a>
+    </li>
+    <li>
         <a href="{{ route('subscriber.myFolder') }}"
             class="text-white text-decoration-none {{ Route::currentRouteName() === 'subscriber.myFolder' ? 'active' : '' }}">
             My Folder

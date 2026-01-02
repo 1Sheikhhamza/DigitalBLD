@@ -14,6 +14,8 @@ use Google\Cloud\Vision\V1\TextAnnotation\DetectedBreak\BreakType;
 use PhpOffice\PhpWord\IOFactory;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class OCRExtractionService
 {
@@ -1970,5 +1972,142 @@ class OCRExtractionService
         if ($this->googleClient) {
             $this->googleClient->close();
         }
+    }
+
+    public function extractScobMetadata(string $text): array
+    {
+        $data = [
+            'case_no' => null,
+            'parties' => null,
+            'publish_year' => null,
+            'decision_date' => null,
+            'division' => 'SCOB',
+        ];
+
+        // 1. Extract Case No
+        // Patterns: "Civil Revision No. 123 of 2023", "Writ Petition No. 123 of 2023", etc.
+        // Also supports: "Criminal Appeal No. 123 of 2023"
+        // Also: "Civil Revision (TN) 2348/2006"
+        if (preg_match('/(Civil\s+Revision|Writ\s+Petition|Criminal\s+Appeal|Criminal\s+Misc\.?\s+Case|First\s+Appeal|Second\s+Appeal)\s+(No\.?|Matches)?\s*[\d\/\-]+(?:\s+of\s+\d{4})?/i', $text, $matches)) {
+            $data['case_no'] = trim($matches[0]);
+        } elseif (preg_match('/(Civil|Criminal|Writ)\s+[A-Za-z]+\s+\(?\w+\)?\s+[\d\/]+/i', $text, $matches)) {
+            $data['case_no'] = trim($matches[0]);
+        }
+
+        // 2. Extract Year from Case No if possible
+        if ($data['case_no'] && preg_match('/(19|20)\d{2}/', $data['case_no'], $yearMatch)) {
+            $data['publish_year'] = $yearMatch[0];
+        }
+
+        // 3. Extract Parties
+        // Pattern: "X vs Y" or "X ... Appellant -Versus- Y ... Respondent"
+        // We look for "Versus" or "vs" or "Vs" surrounded by text, usually in the first 500 characters
+        $headerText = substr($text, 0, 1000); // Limit search to header
+        if (preg_match('/([A-Z][^\n]+?)\s+(?:-?Versus-?|-?Vs\.?-?|v\.?)\s+([A-Z][^\n]+)/i', $headerText, $matches)) {
+            // Clean up
+            $petitioner = trim($matches[1]);
+            $respondent = trim($matches[2]);
+            // Remove "Appellant", "Petitioner", etc if attached
+            $petitioner = preg_replace('/\s+\.\.\.\s*(Appellant|Petitioner|Plaintiff).*/i', '', $petitioner);
+            $respondent = preg_replace('/\s+\.\.\.\s*(Respondent|Defendant|Opposite\s+Party).*/i', '', $respondent);
+
+            $data['parties'] = $petitioner . ' Vs. ' . $respondent;
+        }
+
+        // 4. Extract Decision Date
+        // Patterns: "Date of Judgment : ...", "Judgment on : ...", "Delivered on : ..."
+        if (preg_match('/(Date\s+of\s+Judgment|Decided\s+on|Judgment\s+on|Delivered\s+on|Date)\s*[:\-]?\s*([0-9]{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s*,\s*\d{4}|[0-9]{1,2}[\.\/\-][0-9]{1,2}[\.\/\-]\d{4})/i', $text, $matches)) {
+            $data['decision_date'] = trim($matches[2]);
+        } elseif (preg_match('/([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{4})/', $text, $matches)) {
+            // Fallback for simple date like 18.11.2025 appearing early
+            // But valid dates might appear anywhere? Limiting to first 1000 chars
+            if (strpos($text, $matches[0]) < 1000) {
+                $data['decision_date'] = $matches[0];
+            }
+        }
+
+        return $data;
+    }
+
+
+    public function extractMetadataWithAi(string $text): array
+    {
+        try {
+            // Limit text to ~30k chars to avoid token limits
+            $text = substr($text, 0, 30000);
+
+            $apiKey = env('OPENROUTER_API_KEY');
+            if (!$apiKey) {
+                Log::warning('AI Extraction skipped: API Key missing');
+                return $this->extractScobMetadata($text); // Fallback to Regex
+            }
+
+            $prompt = "You are a legal expert AI. Extract metadata from the following Bangladesh Supreme Court judgment text and return it as a JSON object.
+
+            Required JSON Structure:
+            {
+                \"case_no\": \"e.g. Civil Revision No. 123 of 2023\",
+                \"parties\": \"e.g. Applicant vs Respondent\",
+                \"division\": \"e.g. High Court Division or Appellate Division\",
+                \"published_year\": \"YYYY\",
+                \"decision_date\": \"e.g. 1st January, 2023\",
+                \"judges\": \"e.g. Mr. Justice X and Mr. Justice Y\",
+                \"key_words\": \"comma separated keywords\",
+                \"subject\": \"Brief subject\",
+                \"result\": \"e.g. Rule Absolute or Dismissed\",
+                \"petitioners\": \"Name of petitioners\",
+                \"respondent\": \"Name of respondents\",
+                \"related_act_order_rule\": \"Mention Acts (e.g. Code of Civil Procedure)\"
+            }
+
+            If a field is not found, use null.
+            Do not include any conversational text, ONLY the JSON string.
+
+            Judgment Text:
+            " . $text;
+
+            $response = Http::timeout(60)->withHeaders([
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer ' . $apiKey,
+                'HTTP-Referer' => url('/'),
+                'X-Title' => config('app.name'),
+            ])->post("https://openrouter.ai/api/v1/chat/completions", [
+                        'model' => 'mistralai/devstral-2512:free', // Using consistent model
+                        'messages' => [
+                            [
+                                'role' => 'user',
+                                'content' => $prompt
+                            ]
+                        ]
+                    ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $content = $data['choices'][0]['message']['content'] ?? '';
+
+                // Extract JSON from potential markdown code blocks
+                if (preg_match('/```json(.*?)```/s', $content, $matches)) {
+                    $jsonStr = trim($matches[1]);
+                } else {
+                    $jsonStr = $content;
+                }
+
+                $json = json_decode($jsonStr, true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    return $json;
+                } else {
+                    Log::error('AI Extraction JSON Decode Error: ' . json_last_error_msg());
+                }
+            } else {
+                Log::error('AI Extraction API Error: ' . $response->body());
+            }
+
+        } catch (\Throwable $e) {
+            Log::error('AI Extraction Exception: ' . $e->getMessage());
+        }
+
+        // Fallback to Regex if AI fails
+        return $this->extractScobMetadata($text);
     }
 }
