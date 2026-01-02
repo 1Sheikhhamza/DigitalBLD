@@ -90,7 +90,7 @@ class LegalSearchController extends BaseController
             ->pluck('year');
 
 
-        $volumeList = $this->commonService->getVolume();
+        $volumeList = $this->commonService->getVolume('BLD');
         $getJurisdiction = $this->commonService->getJurisdiction();
         return view('auth.subscribers.profile.legal_search', compact('inputs', 'fillingYears', 'judgmentYear', 'volumeList', 'getJurisdiction'));
     }
@@ -580,8 +580,8 @@ class LegalSearchController extends BaseController
 
     public function bldVolume(Request $request)
     {
-        $volumeList = $this->commonService->getVolume();
-        $query = Volume::where('status', 1)->orderByRaw('CAST(number AS UNSIGNED) ASC');
+        $volumeList = $this->commonService->getVolume('BLD');
+        $query = Volume::where('status', 1)->where('volume_type', 'BLD')->orderByRaw('CAST(number AS UNSIGNED) ASC');
         if (isset($request->volume)) {
             $query->where('id', $request->volume);
         }
@@ -639,7 +639,7 @@ class LegalSearchController extends BaseController
                 return $item;
             });
 
-        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+        $allVolumes = Volume::where('status', 1)->where('volume_type', 'BLD')->orderBy('number', 'asc')->get(['id', 'number']);
 
         return view('auth.subscribers.profile.index', compact('volumeData', 'appellateDecisions', 'highCourtDecisions', 'allVolumes'));
     }
@@ -733,7 +733,7 @@ class LegalSearchController extends BaseController
             ->orderBy('id', 'ASC')
             ->paginate(30);
 
-        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+        $allVolumes = Volume::where('status', 1)->where('volume_type', 'BLD')->orderBy('number', 'asc')->get(['id', 'number']);
 
         return view('auth.subscribers.profile.appellate', compact('volumeData', 'appellateDecisions', 'allVolumes'));
     }
@@ -751,7 +751,7 @@ class LegalSearchController extends BaseController
             ->orderBy('id', 'ASC')
             ->paginate(30);
 
-        $allVolumes = Volume::where('status', 1)->orderBy('number', 'asc')->get(['id', 'number']);
+        $allVolumes = Volume::where('status', 1)->where('volume_type', 'BLD')->orderBy('number', 'asc')->get(['id', 'number']);
 
         return view('auth.subscribers.profile.highcourt', compact('volumeData', 'highCourtDecisions', 'allVolumes'));
     }
