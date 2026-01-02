@@ -34,7 +34,7 @@ class OrganizeScobVolumes extends Command
                 foreach ($decisions as $decision) {
                     if (preg_match('/\/(\d{4})/', $decision->case_no, $matches)) {
                         $year = (int) $matches[1];
-                        if ($year >= 1990 && $year <= 2030) {
+                        if ($year >= 1950 && $year <= 2030) {
                             $yearCounts[$year] = ($yearCounts[$year] ?? 0) + 1;
                         }
                     }
