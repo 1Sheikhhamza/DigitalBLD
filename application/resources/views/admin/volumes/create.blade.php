@@ -56,8 +56,8 @@
                                 <div class="mb-3">
                                     <label for="volume_type" class="form-label">Volume Type</label>
                                     <select name="volume_type" class="form-select" required>
-                                        <option value="BLD">BLD</option>
-                                        <option value="SCOB">SCOB</option>
+                                        <option value="BLD" {{ (old('volume_type') == 'BLD' || (isset($type) && $type == 'BLD')) ? 'selected' : '' }}>BLD</option>
+                                        <option value="SCOB" {{ (old('volume_type') == 'SCOB' || (isset($type) && $type == 'SCOB')) ? 'selected' : '' }}>SCOB</option>
                                     </select>
                                 </div>
 
@@ -107,84 +107,84 @@
 
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script>
-            $(document).ready(function () {
-                $('#ocrForm').on('submit', function (e) {
-                    e.preventDefault();
-                    var formData = new FormData(this);
+                $(document).ready(fu nction () {
+                    $('#ocrForm').on('submit ', function (e) {
+                        e.preventDefault();
+                        var formData = new FormData(this);
 
-                    // Reset UI
-                    $('#submitBtn').prop('disabled', true);
-                    $('#submitBtn').removeClass('btn btn-primary');
-                    $('#submitBtn').addClass('btn btn-default');
-                    $('#validationErrors').hide();
-                    $('#validationErrorsList').empty();
-                    $('#resultMessage').html('');
-                    $('#progressContainer').show();
-                    $('#uploadProgress').val(0);
-                    $('#progressPercent').text('0%');
+                        // Reset UI
+                        $('#submitBtn').prop('disabled', true);
+                        $('#submitBtn').removeClass('btn btn-primary');
+                        $('#submitBtn').addClass('btn btn-default');
+                        $('#validationErrors').hide();
+                        $('#validationErrorsList').empty();
+                        $('#resultMessage').html('');
+                        $('#progressContainer').show();
+                        $('#uploadProgress').val(0);
+                        $('#progressPercent').text('0%'); 
 
-                    $.ajax({
-                        xhr: function () {
-                            var xhr = new window.XMLHttpRequest();
-                            xhr.upload.addEventListener("progress", function (evt) {
-                                if (evt.lengthComputable) {
-                                    var percentComplete = Math.round((evt.loaded / evt.total) * 100);
-                                    $('#uploadProgress').val(percentComplete);
-                                    $('#progressPercent').text(percentComplete + '%');
+                        $.ajax({
+                            xhr: function () {
+                                var xhr = new window.XMLHttpRequest(); 
+                                xhr.upload.addEventListener("progress", function (evt) {
+                                    if (evt.lengthComputable) {
+                                        var percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                                        $('#uploadProgress').val(percentComplete);
+                                        $('#progressPercent').text(percentComplete + '%');
+                                    }
+                                }, false);
+                                return xhr;
+                            },
+                            type: 'POST',
+                            url: $(this).attr('action'),
+                            data: formD ata,
+                            processData: false,
+                            contentType: false,
+                            success: function (response) {
+                                console.log(response);
+                                $('#resultMessage').html('<p style="color:green;">' + response.message + '</p>');
+
+                                // Ensure final value is 100% if upload really finished
+                                $('#uploadProgress').val(100);
+                                 $('#progressPercent').text('100%');
+
+                                // Redirect after 2 seconds (optional)
+                                setTimeout(function () {
+                                    $('#submitBtn').prop('disabled', false);
+                                    $('#submitBtn').removeClass('btn btn-default');
+                                    $('#submitBtn').addClass('btn btn-primary'); 
+                                    window.location.href = "{{ route('volumes.index') }}";
+                                }, 2000);
+                            },
+                            error: function (xhr) {
+                                $('#progressContainer').hide();
+                                if (xh r.status === 422) {
+                                    let errors = xhr.respon seJSON.errors;
+                                    $('#validationErrorsList').empty();
+                                    $.each(errors, function (key, messages) {
+                                        $.each(messages, function (index, message) {
+                                            $('#validationErrorsList').append('<li>' + message + '</li>');
+                                        });
+                                    });
+                                    $('#validationErrors').show();
+                                } else {
+                                    $('#resultMessage').html('<p style="color:red;">An unexpected error occurred. Please try again.</p>');
                                 }
-                            }, false);
-                            return xhr;
-                        },
-                        type: 'POST',
-                        url: $(this).attr('action'),
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function (response) {
-                            console.log(response);
-                            $('#resultMessage').html('<p style="color:green;">' + response.message + '</p>');
 
-                            // Ensure final value is 100% if upload really finished
-                            $('#uploadProgress').val(100);
-                            $('#progressPercent').text('100%');
 
-                            // Redirect after 2 seconds (optional)
-                            setTimeout(function () {
-                                $('#submitBtn').prop('disabled', false);
+                                 $('#submitBtn').prop('disabled', false);
                                 $('#submitBtn').removeClass('btn btn-default');
                                 $('#submitBtn').addClass('btn btn-primary');
-                                window.location.href = "{{ route('volumes.index') }}";
-                            }, 2000);
-                        },
-                        error: function (xhr) {
-                            $('#progressContainer').hide();
-                            if (xhr.status === 422) {
-                                let errors = xhr.responseJSON.errors;
-                                $('#validationErrorsList').empty();
-                                $.each(errors, function (key, messages) {
-                                    $.each(messages, function (index, message) {
-                                        $('#validationErrorsList').append('<li>' + message + '</li>');
-                                    });
-                                });
-                                $('#validationErrors').show();
-                            } else {
-                                $('#resultMessage').html('<p style="color:red;">An unexpected error occurred. Please try again.</p>');
+                            },
+                            complete: function () {
+                                // Re-enable the submit button if needed
+                 $('#submitBtn').prop('disabled', false);
+                                $('#submitBtn').removeClass('btn btn-default');
+                                $('#submitBtn').addClass('btn btn-primary');
                             }
-
-
-                            $('#submitBtn').prop('disabled', false);
-                            $('#submitBtn').removeClass('btn btn-default');
-                            $('#submitBtn').addClass('btn btn-primary');
-                        },
-                        complete: function () {
-                            // Re-enable the submit button if needed
-                            $('#submitBtn').prop('disabled', false);
-                            $('#submitBtn').removeClass('btn btn-default');
-                            $('#submitBtn').addClass('btn btn-primary');
-                        }
+                        });
                     });
                 });
-            });
         </script>
 
 

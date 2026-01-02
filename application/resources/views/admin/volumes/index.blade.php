@@ -18,7 +18,7 @@
                                     class="btn btn-warning btn-sm m-2"><i class="fa fa-times"></i> Disapproved</button>
                                 <button type="button" onclick="deletedata('masterdelete','volumes');" style="color:#fff; "
                                     class="btn btn-danger btn-sm m-2"><i class="fa fa-times"></i> Multiple Delete</button>
-                                <a href="{{ route('volumes.create') }}" style="color:#fff; margin-right:20px"
+                                <a href="{{ route('volumes.create', ['type' => $type ?? '']) }}" style="color:#fff; margin-right:20px"
                                     class="btn btn-primary btn-sm m-2"><i class="fa fa-plus"></i> Add New</a>
                             </ol>
                         </div>
@@ -29,7 +29,7 @@
                 <div class="container-fluid">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Volume List</h3>
+                            <h3 class="card-title">{{ $type ? $type . ' ' : '' }}Volume List</h3>
                             <div class="card-tools"> <button type="button" class="btn btn-tool"
                                     data-lte-toggle="card-collapse"> <i data-lte-icon="expand" class="bi bi-plus-lg"></i> <i
                                         data-lte-icon="collapse" class="bi bi-dash-lg"></i> </button> <button type="button"
@@ -94,11 +94,11 @@
                                                         {!! $page->status ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-danger">Inactive</span>' !!}
                                                     </td>
                                                     <!-- <td>
-                                                        <a href="{{ route('volumes.edit', $page->id) }}" title="Edit Record" class="btn btn-warning btn-sm me-2"><i class="fa fa-edit"></i></a>
-                                                        <a href="{{ route('volumes.show', $page->id) }}" title="View Details" class="btn btn-info btn-sm me-2"><i class="fa fa-eye"></i></a>
-                                                        <button type="button" class="btn btn-danger btn-sm" title="Delete Record"
-                                                            onclick="deleteSingle('{{ $page->id }}','masterdelete','volumes')"><i class="fa fa-trash"></i></button>
-                                                    </td> -->
+                                                                <a href="{{ route('volumes.edit', $page->id) }}" title="Edit Record" class="btn btn-warning btn-sm me-2"><i class="fa fa-edit"></i></a>
+                                                                <a href="{{ route('volumes.show', $page->id) }}" title="View Details" class="btn btn-info btn-sm me-2"><i class="fa fa-eye"></i></a>
+                                                                <button type="button" class="btn btn-danger btn-sm" title="Delete Record"
+                                                                    onclick="deleteSingle('{{ $page->id }}','masterdelete','volumes')"><i class="fa fa-trash"></i></button>
+                                                            </td> -->
                                                 </tr>
                                             @endforeach
                                         </tbody>

@@ -19,22 +19,24 @@ class VolumeController extends Controller
         $this->volumeService = $volumeService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $volumes = $this->volumeService->index();
-        return view('admin.volumes.index', compact('volumes'));
+        $type = $request->get('type');
+        $volumes = $this->volumeService->index($type);
+        return view('admin.volumes.index', compact('volumes', 'type'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('admin.volumes.create');
+        $type = $request->get('type');
+        return view('admin.volumes.create', compact('type'));
     }
 
     /*public function store(VolumeRequest $request)
     {
         // Start from here
         $validated = $request->validated();
-        
+
         // Handle image upload
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $validated['image'] = ImageUploadHelper::upload(
@@ -71,7 +73,7 @@ class VolumeController extends Controller
         } else {
             return response()->json(['errors' => ['document' => ['Document is required.']]], 422);
         }
-        
+
         // Create volume record
         $volume = $this->volumeService->create($validated);
         $message = "OCR processing completed successfully.";
@@ -84,8 +86,8 @@ class VolumeController extends Controller
             'message' => 'Volume created and OCR processing started!'
         ]);
     }*/
-    
-    
+
+
     public function store(VolumeRequest $request)
     {
         // Start from here
@@ -120,8 +122,8 @@ class VolumeController extends Controller
 
             // Capture metadata before moving
             $originalName = $documentFile->getClientOriginalName();
-            $mimeType     = $documentFile->getMimeType();
-            $fileSize     = $documentFile->getSize();
+            $mimeType = $documentFile->getMimeType();
+            $fileSize = $documentFile->getSize();
 
             $fileName = uniqid('doc_') . '.' . $documentFile->getClientOriginalExtension();
             $destinationPath = storage_path('app/documents'); // outside public
@@ -148,8 +150,8 @@ class VolumeController extends Controller
 
         // Instant dispatchSync OCR data except queue jobs for testing only
         // ProcessOCRExtraction::dispatchSync($volume->id, $validated['year'], $validated['number'], $validated['document_path'], $documentFile->getClientOriginalExtension(), $message);
-        
-        
+
+
         ProcessOCRExtraction::dispatch($volume->id, $validated['year'], $validated['number'], $validated['document_path'], $documentFile->getClientOriginalExtension(), $message);
         return response()->json([
             'success' => true,

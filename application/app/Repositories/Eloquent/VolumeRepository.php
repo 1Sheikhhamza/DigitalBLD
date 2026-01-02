@@ -7,9 +7,15 @@ use App\Repositories\Contracts\VolumeRepositoryInterface;
 
 class VolumeRepository implements VolumeRepositoryInterface
 {
-    public function index()
+    public function index($type = null)
     {
-        return Volume::orderByDesc('id')->paginate(50);
+        $query = Volume::orderByDesc('id');
+
+        if ($type) {
+            $query->where('volume_type', $type);
+        }
+
+        return $query->paginate(50);
     }
 
     /* public function create(array $data)
