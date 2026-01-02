@@ -51,73 +51,204 @@ class ProcessOCRExtraction implements ShouldQueue
             $text = $service->extractText(storage_path('app/' . $this->filePath), $this->extension);
             // For test porpuse
             // $text = DB::table('ocr_extractions')->where('id', 1227)->value('content');
-            // dd($text);
+
             $text = preg_replace('/([A-Za-z])-\s+([A-Za-z])/', '$1$2', $text);
             $sections = $service->splitLegalText($text, ['Appellate Division', 'High Court Division']);
-            // dd($sectios);
+
             // For single row testing
             // $section = $sections[1];
             // $index = 0;
             foreach ($sections as $index => $section) {
                 $getDivision = $service->getDivision($section['title']);
                 $extracted = $service->extractDataFromLegalText($section['content'], $section['title'], $this->volume_year, $this->volume_number);
-                // dd($extracted['division']);
+
                 // $partySplit = $service->splitParties($extracted['parties'] ?? '');
                 $pages = $service->extractPageNumbers($section['content']);
-                
+
                 if (isset($sections[$index + 1])) {
                     $nextSectionPages = $service->extractPageNumbers($sections[$index + 1]['content']);
                     if ($nextSectionPages['start']) {
                         $pages['end'] = $nextSectionPages['start'] - 1;
                     }
                 }
-                
+
                 // Keyword filtering
                 $englishStopWords = [
-                    'the', 'and', 'is', 'was', 'are', 'of', 'to', 'in', 'with', 'that',
-                    'for', 'on', 'by', 'as', 'at', 'be', 'this', 'from', 'or', 'an',
-                    'it', 'has', 'have', 'a', 'not', 'but', 'were', 'will', 'shall',
-                    'can', 'may', 'might', 'should', 'would', 'been', 'being', 'into',
-                    'such', 'there', 'here', 'where', 'which', 'who', 'whom'
+                    'the',
+                    'and',
+                    'is',
+                    'was',
+                    'are',
+                    'of',
+                    'to',
+                    'in',
+                    'with',
+                    'that',
+                    'for',
+                    'on',
+                    'by',
+                    'as',
+                    'at',
+                    'be',
+                    'this',
+                    'from',
+                    'or',
+                    'an',
+                    'it',
+                    'has',
+                    'have',
+                    'a',
+                    'not',
+                    'but',
+                    'were',
+                    'will',
+                    'shall',
+                    'can',
+                    'may',
+                    'might',
+                    'should',
+                    'would',
+                    'been',
+                    'being',
+                    'into',
+                    'such',
+                    'there',
+                    'here',
+                    'where',
+                    'which',
+                    'who',
+                    'whom'
                 ];
-                
+
                 $nameTitles = [
-                    'mr', 'mst', 'md', 'mrs', 'miss', 'ms', 'dr', 'advocate',
-                    'barrister', 'professor', 'justice', 'j', 'jj', 'esq'
+                    'mr',
+                    'mst',
+                    'md',
+                    'mrs',
+                    'miss',
+                    'ms',
+                    'dr',
+                    'advocate',
+                    'barrister',
+                    'professor',
+                    'justice',
+                    'j',
+                    'jj',
+                    'esq'
                 ];
-                
+
                 // 🔥 Extended Bengali/common South Asian names
                 $commonBengaliNames = [
-                    'rahman', 'hasan', 'hossain', 'khan', 'chowdhury', 'islam',
-                    'ali', 'ahmed', 'uddin', 'begum', 'kabir', 'haque', 'miah',
-                    'rahim', 'karim', 'mostafa', 'shah', 'siddique', 'uddin',
-                    'aziz', 'salam', 'rafiq', 'mahbub', 'alam', 'nazrul', 'bashar',
-                    'faisal', 'faruk', 'akram', 'sadia', 'jasmin', 'nahar',
-                    'huda', 'latif', 'atif', 'babul', 'sohel', 'asif'
+                    'rahman',
+                    'hasan',
+                    'hossain',
+                    'khan',
+                    'chowdhury',
+                    'islam',
+                    'ali',
+                    'ahmed',
+                    'uddin',
+                    'begum',
+                    'kabir',
+                    'haque',
+                    'miah',
+                    'rahim',
+                    'karim',
+                    'mostafa',
+                    'shah',
+                    'siddique',
+                    'uddin',
+                    'aziz',
+                    'salam',
+                    'rafiq',
+                    'mahbub',
+                    'alam',
+                    'nazrul',
+                    'bashar',
+                    'faisal',
+                    'faruk',
+                    'akram',
+                    'sadia',
+                    'jasmin',
+                    'nahar',
+                    'huda',
+                    'latif',
+                    'atif',
+                    'babul',
+                    'sohel',
+                    'asif'
                 ];
-                
+
                 // 🆕 Custom domain-specific legal/case keywords to exclude
                 $legalStopWords = [
-                    'respondent', 'respondents', 'petitioner', 'petitioners',
-                    'appellant', 'appellants', 'state', 'condemned', 'defd-appellant',
-                    'opposite', 'opposite party', 'opposite parties',
-                    'defendant', 'defendant opposite part', 'plaintiff', 'plaintiffs',
-                    'plaintiff-respondents', 'accused', 'applicant',
-                    'writ', 'petition', 'case', 'bld', 'bangladesh', 'issued',
-                    'jurisdiction', 'under', 'section', 'sub section', 'sub-section',
-                    'order', 'rule', 'appeal', 'appeals', 'court', 'tribunal',
-                    'bench', 'division', 'judge', 'justices', 'law', 'act', 'code',
-                    'provision', 'application', 'matter', 'civil', 'criminal',
-                    'revision', 'suit', 'trial', 'judgment', 'verdict', 'motion',
-                    'cause', 'hearing', 'counsel', 'advocate', 'bar', 'legal',
+                    'respondent',
+                    'respondents',
+                    'petitioner',
+                    'petitioners',
+                    'appellant',
+                    'appellants',
+                    'state',
+                    'condemned',
+                    'defd-appellant',
+                    'opposite',
+                    'opposite party',
+                    'opposite parties',
+                    'defendant',
+                    'defendant opposite part',
+                    'plaintiff',
+                    'plaintiffs',
+                    'plaintiff-respondents',
+                    'accused',
+                    'applicant',
+                    'writ',
+                    'petition',
+                    'case',
+                    'bld',
+                    'bangladesh',
+                    'issued',
+                    'jurisdiction',
+                    'under',
+                    'section',
+                    'sub section',
+                    'sub-section',
+                    'order',
+                    'rule',
+                    'appeal',
+                    'appeals',
+                    'court',
+                    'tribunal',
+                    'bench',
+                    'division',
+                    'judge',
+                    'justices',
+                    'law',
+                    'act',
+                    'code',
+                    'provision',
+                    'application',
+                    'matter',
+                    'civil',
+                    'criminal',
+                    'revision',
+                    'suit',
+                    'trial',
+                    'judgment',
+                    'verdict',
+                    'motion',
+                    'cause',
+                    'hearing',
+                    'counsel',
+                    'advocate',
+                    'bar',
+                    'legal',
                     'authority'
                 ];
-                
+
                 // Build human name words from extracted data (judge names + parties)
                 $humanNamesWords = array_filter(array_unique(
                     preg_split('/\s+/', strtolower($extracted['judgename'] . ' ' . $extracted['parties']))
                 ));
-                
+
                 // Final stopwords list (unique merged)
                 $stopwords = array_unique(array_merge(
                     $englishStopWords,
@@ -126,13 +257,13 @@ class ProcessOCRExtraction implements ShouldQueue
                     $legalStopWords,
                     $humanNamesWords
                 ));
-                
+
                 $keywords = $service->extractCaseKeywords($extracted['content'] ?? '', $stopwords, 20);
                 $sectionsValue = $service->extractLegalSections($section['content']);
                 $judgmentDate = $service->extractJudgmentDate($section['content']);
                 //, $extracted['extractPetitionersAndRespondents']
                 $subject = $service->extractSubjectText($section['content']);
-                
+
                 DB::table('ocr_extractions')->insert([
                     'volume_id' => $this->volume_id,
                     'published_year' => $this->volume_year,
@@ -148,8 +279,8 @@ class ProcessOCRExtraction implements ShouldQueue
                     'judge_name' => $extracted['judgename'] ?? null,
                     // 'judges' => $extracted['judgename'] ?? null,
                     'parties' => $extracted['parties'] ?? null,
-                    'petitioners' => $extracted['extractPetitionersAndRespondents']['petitioners'] ? join('<br/>',$extracted['extractPetitionersAndRespondents']['petitioners']) : null,
-                    'respondent' => $extracted['extractPetitionersAndRespondents']['respondents'] ? join('<br/>',$extracted['extractPetitionersAndRespondents']['respondents']) : null,
+                    'petitioners' => $extracted['extractPetitionersAndRespondents']['petitioners'] ? join('<br/>', $extracted['extractPetitionersAndRespondents']['petitioners']) : null,
+                    'respondent' => $extracted['extractPetitionersAndRespondents']['respondents'] ? join('<br/>', $extracted['extractPetitionersAndRespondents']['respondents']) : null,
                     'related_act_order_rule' => $extracted['ref_law'] ?? null,
                     'sections_subsections' => $sectionsValue,
                     'key_words' => implode(', ', $keywords),

@@ -31,7 +31,7 @@ class BaseController extends Controller
             ? Page::whereIn('id', $footerData['quick_link_menu'])->get()
             : collect();
 
-        // dd($footerData);
+
         view()->share([
             'discoverMenus' => $discoverMenus,
             'quickMenus' => $quickMenus,

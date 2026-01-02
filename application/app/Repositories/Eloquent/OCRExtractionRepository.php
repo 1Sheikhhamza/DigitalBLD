@@ -67,7 +67,7 @@ class OCRExtractionRepository implements OCRExtractionRepositoryInterface
 
     public function create(array $data)
     {
-        // dd($data);
+
         $volumeData = [
             'number' => $data['volume_id'],
             'year' => $data['published_year'],

@@ -782,7 +782,7 @@ class OCRExtractionService
             'ref_journal' => extractField($text, [
                 '/reported in\s+([^\n\.]+)/i',
             ]),
-            
+
             'content' => $this->extractContentFromJudgment($text),
         ];
     } */
@@ -995,7 +995,8 @@ class OCRExtractionService
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if (!$line) continue;
+            if (!$line)
+                continue;
 
             // Start after Date of Judgment
             if (!$collecting && preg_match('/Date of Judgment\s*:/i', $line)) {
@@ -1017,7 +1018,8 @@ class OCRExtractionService
             }
         }
 
-        if (empty($snippetLines)) return null;
+        if (empty($snippetLines))
+            return null;
 
         return trim($snippetLines[0]);
     }
@@ -1101,14 +1103,18 @@ class OCRExtractionService
 
             foreach ($lines as $line) {
                 $line = trim($line);
-                if ($line === '') continue;
+                if ($line === '')
+                    continue;
 
                 // Skip lines that are part of date
-                if (preg_match('/^(:?\s*The\s+)?\d{1,2}(st|nd|rd|th)?\s*[A-Za-z]+,?\s*(\d{4})?$/i', $line)) continue;
-                if (preg_match('/^\s*\d{4}\s*$/', $line)) continue;
+                if (preg_match('/^(:?\s*The\s+)?\d{1,2}(st|nd|rd|th)?\s*[A-Za-z]+,?\s*(\d{4})?$/i', $line))
+                    continue;
+                if (preg_match('/^\s*\d{4}\s*$/', $line))
+                    continue;
 
                 // Stop at next Section heading
-                if (preg_match('/^Section\b/i', $line)) break;
+                if (preg_match('/^Section\b/i', $line))
+                    break;
 
                 if (!$found) {
                     // First meaningful line
@@ -1260,7 +1266,7 @@ class OCRExtractionService
         $beforeJudgmentText = $match[1];
 
         // Step 3: Build regex for petitioners/respondents (multi-line safe)
-        $petPattern  = '/([^\n]+?)\s*(?:' . implode('|', array_map('preg_quote', $petitionerEndings)) . ')\s*[\.,;]?/i';
+        $petPattern = '/([^\n]+?)\s*(?:' . implode('|', array_map('preg_quote', $petitionerEndings)) . ')\s*[\.,;]?/i';
         $respPattern = '/([^\n]+?)\s*(?:' . implode('|', array_map('preg_quote', $respondentEndings)) . ')\s*[\.,;]?/i';
 
         // Step 4: Petitioners
@@ -1327,8 +1333,8 @@ class OCRExtractionService
         $divisionCode = strtoupper(str_starts_with($division, 'Appellate') ? 'AD' : 'HCD');
 
         // Escape for regex
-        $yearPattern = preg_quote((string)$year, '/');
-        $volumePattern = preg_quote((string)$volume, '/');
+        $yearPattern = preg_quote((string) $year, '/');
+        $volumePattern = preg_quote((string) $volume, '/');
 
         // Normalize HTML to plain text-like separators
         $normalizedText = preg_replace('/<br\s*\/?>|<\/p>|<p>/i', "\n", $text);
@@ -1356,7 +1362,7 @@ class OCRExtractionService
             {$volumePattern}\s*(?:BLD|BLO)\s*\(\s*{$divisionCode}\s*\)\s*\(\s*{$yearPattern}\s*\)
             )
             [\s\r\n]+(.+?(?:v\.|vs\.?)\s+.+)/ix"; */
-        // dd($pattern);
+
 
 
         if (preg_match($pattern, $normalizedText, $matches)) {
@@ -1520,7 +1526,7 @@ class OCRExtractionService
 
             $isFirst = ($buf === '');
             $startsNumbered = (bool) preg_match('/^\d+\.\s/', $line);
-            $startsCitation  = (bool) preg_match('/^(?:[12][0-9]{3}\b|\d{2,}[A-Za-z])/', $line); // e.g., 20BLD..., 1999...
+            $startsCitation = (bool) preg_match('/^(?:[12][0-9]{3}\b|\d{2,}[A-Za-z])/', $line); // e.g., 20BLD..., 1999...
 
             if (!$isFirst && ($startsNumbered || $startsCitation)) {
                 // flush previous paragraph, start a new one
@@ -1621,7 +1627,7 @@ class OCRExtractionService
     //         $rawDateText = preg_replace('/-\s*\n\s*/', '', $match[1]);
     //         $rawDateText = preg_replace('/\s+/', ' ', $rawDateText);
     //         $result = $this->extractFullDateAndMonth($rawDateText);
-    //         dd($rawDateText);
+
     //         return $result ?? ['date' => null, 'month' => null];
     //     }
 
@@ -1854,7 +1860,8 @@ class OCRExtractionService
 
     public function formatDate(?string $dateString): ?string
     {
-        if (!$dateString) return null;
+        if (!$dateString)
+            return null;
 
         try {
             return \Carbon\Carbon::parse($dateString)->format('Y-m-d');
