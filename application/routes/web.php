@@ -405,6 +405,7 @@ Route::prefix('admin')->middleware('auth:administration')->group(function () {
         Route::get('subscribers/export', [SubscriberController::class, 'export'])->name('subscribers.export');
         Route::resource('subscribers', SubscriberController::class);
         Route::resource('subscriptions', SubscriptionController::class);
+        Route::get('ocr_extractions/create_scob', [OCRExtractionController::class, 'createScob'])->name('ocr_extractions.create_scob');
         Route::post('ocr_extractions/upload-scob-pdf', [OCRExtractionController::class, 'uploadScobPdf'])->name('ocr_extractions.upload_scob_pdf');
         Route::resource('ocr_extractions', OCRExtractionController::class);
         Route::resource('blogs', BlogController::class);

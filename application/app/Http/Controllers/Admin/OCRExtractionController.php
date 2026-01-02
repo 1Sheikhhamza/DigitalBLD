@@ -58,6 +58,12 @@ class OCRExtractionController extends Controller
         return view('admin.ocr_extractions.create', compact('volumeList'));
     }
 
+    public function createScob()
+    {
+        $volumeList = $this->commonService->getVolume();
+        return view('admin.ocr_extractions.create_scob', compact('volumeList'));
+    }
+
     public function store(OCRExtractionUpdateRequest $request)
     {
         $validated = $request->validated();

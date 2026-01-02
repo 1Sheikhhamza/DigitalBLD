@@ -1,5 +1,5 @@
 @extends('admin.layouts.app')
-@section('title', 'Add New Decision')
+@section('title', 'Add New BLD Decision')
 @section('content')
 
 @php
@@ -19,7 +19,7 @@ $months = [
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-sm-6">
-                        <h3 class="mb-0">Add New Legal Decision</h3>
+                        <h3 class="mb-0">Add New BLD Decision</h3>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-end">
@@ -313,6 +313,7 @@ $months = [
                     // Fill Fields
                     
                     // Division -> AI or default SCOB
+                    const divisionSelect = document.querySelector('select[name="division"]');
                     if(divisionSelect) {
                          if(data.metadata.division) {
                              const divLower = data.metadata.division.toLowerCase();
