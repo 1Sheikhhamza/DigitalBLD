@@ -54,13 +54,13 @@ class OCRExtractionController extends Controller
 
     public function create()
     {
-        $volumeList = $this->commonService->getVolume();
+        $volumeList = $this->commonService->getVolume('BLD');
         return view('admin.ocr_extractions.create', compact('volumeList'));
     }
 
     public function createScob()
     {
-        $volumeList = $this->commonService->getVolume();
+        $volumeList = $this->commonService->getVolume('SCOB');
         return view('admin.ocr_extractions.create_scob', compact('volumeList'));
     }
 

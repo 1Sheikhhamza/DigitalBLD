@@ -4,7 +4,8 @@ namespace App\Services;
 
 use App\Repositories\Contracts\CommonRepositoryInterface;
 
-class CommonService {
+class CommonService
+{
 
     protected $repository;
 
@@ -13,27 +14,33 @@ class CommonService {
         $this->repository = $repository;
     }
 
-    public function getBanner(){
+    public function getBanner()
+    {
         return $this->repository->getBanner();
     }
 
-    public function getSubscriber(){
+    public function getSubscriber()
+    {
         return $this->repository->getSubscriber();
     }
 
-    public function getAdminSubscriber($limit){
+    public function getAdminSubscriber($limit)
+    {
         return $this->repository->getAdminSubscriber($limit);
     }
 
-    public function getPackage(){
+    public function getPackage()
+    {
         return $this->repository->getPackages();
     }
 
-    public function getVolume(){
-        return $this->repository->getVolume();
+    public function getVolume($type = null)
+    {
+        return $this->repository->getVolume($type);
     }
 
-    public function getJurisdiction(){
+    public function getJurisdiction()
+    {
         return $this->repository->getJurisdiction();
     }
 }

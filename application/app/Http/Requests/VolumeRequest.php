@@ -24,14 +24,15 @@ class VolumeRequest extends FormRequest
         $startYear = date('Y') - 49;  // 50 years including current year
         $currentYear = date('Y');
         $years = range($startYear, $currentYear);
-        
+
         return [
             // 'number' => 'required|numeric|unique:volumes,number,' . $this->route('volume'),
             'number' => 'required|numeric',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'year'      => 'required|numeric|in:' . implode(',', $years),
+            'year' => 'required|numeric|in:' . implode(',', $years),
             // 'index_file' => 'nullable|mimes:pdf|max:10240',
             'index_file' => 'nullable|mimes:pdf|max:51200',
+            'volume_type' => 'nullable|string|in:BLD,SCOB',
         ];
     }
 }

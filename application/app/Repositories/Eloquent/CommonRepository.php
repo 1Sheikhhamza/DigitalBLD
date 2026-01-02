@@ -17,9 +17,15 @@ class CommonRepository implements CommonRepositoryInterface
         return Banner::select('id', 'name')->get();
     }
 
-    public function getVolume()
+    public function getVolume($type = null)
     {
-        return Volume::withoutTrashed()->orderBy('number', 'asc')->pluck('number', 'id');
+        $query = Volume::withoutTrashed()->orderBy('number', 'asc');
+
+        if ($type) {
+            $query->where('volume_type', $type);
+        }
+
+        return $query->pluck('number', 'id');
     }
 
 

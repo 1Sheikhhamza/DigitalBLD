@@ -5,7 +5,7 @@ namespace App\Repositories\Contracts;
 interface CommonRepositoryInterface
 {
     public function getBanner();
-    public function getVolume();
+    public function getVolume($type = null);
     public function getSubscriber();
     public function getAdminSubscriber($limit);
     public function getPackages();
