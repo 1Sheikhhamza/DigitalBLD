@@ -8,7 +8,9 @@ echo "Starting deployment..."
 # 1. Pull latest changes (if git is used)
 if [ -d ".git" ]; then
     echo "Pulling latest changes from git..."
-    git pull origin main # Adjust branch if needed
+    CURRENT_BRANCH=$(git branch --show-current)
+    echo "Pulling latest changes for branch: $CURRENT_BRANCH..."
+    git pull origin "$CURRENT_BRANCH"
 else
     echo "No git repository found, skipping git pull."
 fi
