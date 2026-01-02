@@ -126,4 +126,4 @@ if __name__ == "__main__":
     # Test run with limit first, then remove limit for full ingest
     # Set limit=100 for testing, None for full
     print("Starting Ingestion...")
-    ingest_data(limit=200) 
+    ingest_data(limit=500) 

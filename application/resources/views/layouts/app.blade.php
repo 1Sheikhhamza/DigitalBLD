@@ -110,39 +110,14 @@
         <!-- Left (col-2) -->
         <div class="col-2 d-flex justify-content-start">
           <a href="{{ route('home') }}" class="logo d-flex align-items-center me-auto">
-            <img src="{{ asset('frontend/assets/img/logo.png') }}">
+            <img src="{{ asset('frontend/assets/img/logo.png') }}" style="padding: 0; max-height: 80px;">
             <span class="sitename">Digital BLD</span>
           </a>
         </div>
 
         <!-- Center (col-4) -->
         <div class="col-6 d-flex justify-content-center">
-          <div id="countdownArea" class="countdown-container">
-            <div class="launch-text">Launching In:</div>
 
-            <div class="timer-unit">
-              <div class="time-value" id="days">00</div>
-              <div class="time-label">Days</div>
-            </div>
-            <div class="separator">:</div>
-
-            <div class="timer-unit">
-              <div class="time-value" id="hours">00</div>
-              <div class="time-label">Hours</div>
-            </div>
-            <div class="separator">:</div>
-
-            <div class="timer-unit">
-              <div class="time-value" id="minutes">00</div>
-              <div class="time-label">Mins</div>
-            </div>
-            <div class="separator">:</div>
-
-            <div class="timer-unit">
-              <div class="time-value" id="seconds">00</div>
-              <div class="time-label">Secs</div>
-            </div>
-          </div>
         </div>
 
         <!-- Right (col-6) -->
@@ -192,7 +167,7 @@
 
 
               <li>
-                <a href="#" class="btn btn-primary text-white ms-2" data-bs-toggle="modal"
+                <a href="#" class="btn btn-primary text-white ms-2 me-2" data-bs-toggle="modal"
                   data-bs-target="#bookDemoModal"
                   style="background-color: #0d6efd; padding: 8px 20px; border-radius: 5px;">Book a Demo</a>
               </li>
@@ -221,6 +196,53 @@
     </div>
   </header>
 
+  @if(isset($announcements) && $announcements->count() > 0)
+    <div class="announcement-bar footer dark-background py-2 overflow-hidden"
+      style="border-top: none; padding-top: 10px; padding-bottom: 10px; background: linear-gradient(90deg, #003092, #0051c4);">
+      <div class="container">
+        <div class="d-flex align-items-center">
+          <div
+            class="announcement-label bg-danger text-white px-2 py-1 me-3 rounded small fw-bold text-nowrap d-flex align-items-center justify-content-center"
+            style="margin-left: -15px;">
+            Announcements
+          </div>
+          <div class="marquee-container w-100 overflow-hidden position-relative">
+            <div class="marquee-content d-inline-block text-nowrap">
+              @foreach($announcements as $announcement)
+                <span class="me-5">
+                  <i class="bi bi-megaphone-fill me-2 text-warning"></i>
+                  {{ $announcement->message }}
+                </span>
+              @endforeach
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .marquee-content {
+        display: inline-block;
+        animation: marquee 40s linear infinite;
+        font-size: 1.1em;
+        color: #fff;
+      }
+
+      .marquee-container:hover .marquee-content {
+        animation-play-state: paused;
+      }
+
+      @keyframes marquee {
+        0% {
+          transform: translateX(100%);
+        }
+
+        100% {
+          transform: translateX(-100%);
+        }
+      }
+    </style>
+  @endif
 
   @yield('content')
 
@@ -308,36 +330,7 @@
       document.body.style.msUserSelect = 'none';
     });
   </script>
-  <script>
-    function startCountdown() {
-      const target = new Date("2025-11-24T16:00:00");
 
-      function update() {
-        const now = new Date();
-        const diff = target - now;
-
-        if (diff <= 0) {
-          document.getElementById("countdownArea").style.display = "none";
-          return;
-        }
-
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
-
-        document.getElementById("days").innerText = String(days).padStart(2, "0");
-        document.getElementById("hours").innerText = String(hours).padStart(2, "0");
-        document.getElementById("minutes").innerText = String(minutes).padStart(2, "0");
-        document.getElementById("seconds").innerText = String(seconds).padStart(2, "0");
-      }
-
-      update();
-      setInterval(update, 1000);
-    }
-
-    startCountdown();
-  </script>
 
 
 

@@ -39,3 +39,11 @@ application/*-*-2025_*/
 
 application/.env
 DigitalBLD_Source_Code.zip
+
+# Live Share Logs
+*.log
+
+
+# Meilisearch Data
+data.ms/
+

@@ -1,0 +1,8 @@
+tunnels:
+  ai:
+    addr: 8501
+    proto: http
+  app:
+    addr: 8000
+    proto: http
+version: '2'

@@ -18,12 +18,17 @@ class DictionaryController extends BaseController
     public function index(Request $request)
     {
         $query = $request->get('q');
+        $letter = $request->get('letter');
 
         $words = Dictionary::when($query, function ($q) use ($query) {
             $q->where('word', 'like', "%$query%");
-        })->orderBy('word', 'asc')->paginate(20);
+        })
+            ->when($letter, function ($q) use ($letter) {
+                $q->where('word', 'like', "$letter%");
+            })
+            ->orderBy('word', 'asc')->paginate(20);
 
-        return view('auth.subscribers.profile.dictionary.index', compact('words', 'query'));
+        return view('auth.subscribers.profile.dictionary.index', compact('words', 'query', 'letter'));
     }
 
     public function autocomplete(Request $request)

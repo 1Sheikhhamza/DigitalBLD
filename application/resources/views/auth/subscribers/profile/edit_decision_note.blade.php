@@ -60,17 +60,35 @@
       box-shadow: 0 8px 20px rgba(230, 184, 0, 0.8);
       color: #111;
     }
-  </style>
 
-  <div class="container-fluid mt-3 mb-3 px-4">
-    <div class="row">
-      <div class="col-12">
-        <div class="card custom-card p-4">
-          <h3 class="mb-4 fw-bold text-center">Edit My Annotated Judgment</h3>
+    /* Increase Icon Size */
+    .cke_button_icon {
+      transform: scale(1.1);
+    }
+
+    .cke_button {
+      padding: 4px !important;
+    }
+
+    /* Ensure Editor is Full Width & Frameless */
+    .cke_chrome {
+      border: none !important;
+      width: 100% !important;
+      box-shadow: none !important;
+    }
+
+    /* Fix container overflow */
+    .container-fluid {
+      overflow-x: hidden;
+    }
+  </style>
+  <div class="container-fluid p-0 m-0">
+    <div class="row m-0">
+      <div class="col-12 p-0">
+        <div class="p-0">
           <form action="{{ route('subscriber.myDecision.updateNote', $myNotes->id) }}" method="POST">
             @csrf
-            <div class="mb-4">
-              <label for="editor" class="form-label">Your Annotated Judgment</label>
+            <div class="mb-2">
               <textarea name="notes" id="editor" class="form-control custom-textarea"
                 placeholder="Write your notes here...">{!! old('notes', $myNotes->notes) !!}</textarea>
             </div>
@@ -80,10 +98,10 @@
 
             <div class="d-flex justify-content-between">
               <a href="{{ route('subscriber.myDecision', Crypt::encrypt($myNotes->id)) }}"
-                class="btn btn-cancel px-4 py-2">
+                class="btn btn-cancel px-3 py-1">
                 Cancel
               </a>
-              <button type="submit" class="btn btn-save px-4 py-2">
+              <button type="submit" class="btn btn-save px-3 py-1">
                 <i class="bi bi-pencil-square me-2"></i> Save My Note
               </button>
             </div>
@@ -100,7 +118,21 @@
     if (typeof CKEDITOR !== 'undefined') {
       CKEDITOR.replace('editor', {
         extraPlugins: 'font',
-        height: 500
+        height: 800,
+        toolbar: [
+          // Line 1: Common editing tools
+          { name: 'document', items: ['Source', '-', 'Print'] },
+          { name: 'clipboard', items: ['Undo', 'Redo', '-', 'Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord'] },
+          { name: 'editing', items: ['Find', 'Replace', '-', 'SelectAll'] },
+          { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+          { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'] },
+          // Line 2: Inserts, Links, Styles (Now merged into Line 1 logic by removing break)
+          { name: 'links', items: ['Link', 'Unlink'] },
+          { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+          { name: 'styles', items: ['Styles', 'Format', 'Font', 'FontSize'] },
+          { name: 'colors', items: ['TextColor', 'BGColor'] },
+          { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
+        ]
       });
     }
   </script>

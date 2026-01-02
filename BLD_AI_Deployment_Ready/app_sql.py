@@ -141,6 +141,48 @@ if "case_id" in query_params:
         st.session_state.history_loaded = False # Force reload history for new case/session context if needed
         logger.info(f"Context locked to Case ID: {case_id_param}")
 
+def check_and_unlock_context(query: str):
+    """
+    Intelligent Context Unlocking:
+    If the user asks about a SPECIFIC different case (e.g. "Writ Petition 1034"),
+    we must UNLOCK the previous context to avoid SQL injection of the old case ID.
+    """
+    if not st.session_state.current_case:
+        return
+
+    # Pattern for explicit case references
+    # e.g. "Civil Revision No 123", "Writ Petition 55", "Case 33 of 2022"
+    case_patterns = [
+        r"(?:civil|criminal|writ|appeal|revision|reference|case)\s+(?:petition|revision|appeal|reference|no\.?|number)?\s*\d+",
+        r"case\s+no\.?\s*\d+",
+        r"no\.?\s*\d+\s+of\s+\d{4}" 
+    ]
+    
+    query_lower = query.lower()
+    
+    # If explicitly asking to "find", "search", "show" -> Unlock
+    if any(x in query_lower for x in ["find ", "search ", "show ", "look for "]):
+        logger.info("Context Unlocked due to explicit search keyword")
+        st.session_state.context_locked = False
+        st.session_state.current_case = None
+        st.session_state.current_case_id = None
+        st.session_state.current_parties = None
+        return
+
+    # If mentioning a specific case number that is DIFFERENT from current
+    for pattern in case_patterns:
+        if re.search(pattern, query_lower):
+            # Check if it's just mentioning the current case?
+            # heuristic: if detecting a case pattern, safest to UNLOCK to allow fresh SQL generation.
+            # The generate_sql prompt will handle if it's the same case or new.
+            # But we must stop the "SQL ENFORCER" from forcefully re-injecting the old one.
+            logger.info("Context Unlocked due to detection of Case Number pattern in query")
+            st.session_state.context_locked = False
+            st.session_state.current_case = None
+            st.session_state.current_case_id = None
+            st.session_state.current_parties = None
+            return
+
 if "user_id" in query_params:
     user_id_param = query_params["user_id"]
     if isinstance(user_id_param, list):
@@ -223,26 +265,13 @@ def init_database():
             conn.commit()
             
             # --- LOAD HISTORY IF USER ID PRESENT ---
-            if st.session_state.user_id and not st.session_state.history_loaded:
-                # Get the most recent session_id for this user
-                cursor.execute(f"SELECT session_id FROM ai_chat_histories WHERE user_id = {st.session_state.user_id} ORDER BY created_at DESC LIMIT 1")
-                last_session_row = cursor.fetchone()
-                
-                if last_session_row and last_session_row['session_id']:
-                    last_sid = last_session_row['session_id']
-                    st.session_state.current_session_id = last_sid
-                    
-                    # Load messages for this session
-                    cursor.execute(f"SELECT role, content FROM ai_chat_histories WHERE session_id = '{last_sid}' ORDER BY id ASC")
-                    history = cursor.fetchall()
-                    
-                    if history:
-                        st.session_state.messages = [] # Reset local buffer
-                        for msg in history:
-                            st.session_state.messages.append({"role": msg['role'], "content": msg['content']})
-                        logger.info(f"Loaded {len(history)} messages from session {last_sid}")
-                
-                st.session_state.history_loaded = True
+            # DISABLED: User requested to ALWAYS start with a CLEAN PAGE (New Chat)
+            # if st.session_state.user_id and not st.session_state.history_loaded:
+            #     # ... (Auto-load logic removed) ...
+            #     pass
+            
+            st.session_state.history_loaded = True 
+
 
             cursor.close()
             conn.close()
@@ -302,6 +331,115 @@ def clean_legal_query(query: str) -> str:
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
+def classify_query_intent(query: str) -> str:
+    """Classify if query is SQL-based (specific) or Semantic (narrative/situation)."""
+    query_lower = query.lower()
+    
+    # 1. SQL Indicators (Specific Fields)
+    sql_triggers = [
+        "case no", "case number", "v.", "vs", "versus", "judge", "justice", 
+        "date", "decided on", "volume", "page", "section", "article", "act",
+        "find case", "search for", "show me", "list cases", "parties",
+        "petitioner", "respondent"
+    ]
+    
+    # 2. Check for SQL patterns
+    if any(trigger in query_lower for trigger in sql_triggers):
+        return "SQL"
+        
+    # 3. Check for Date patterns
+    if extract_date_components(query):
+        return "SQL"
+
+    # 4. Check for Numbers (often implies Case No or Year) - BUT context matters
+    # "3 people stole" -> Semantic. "Case 3 of 2022" -> SQL.
+    # Simple heuristic: If number is present but no "case"/"section"/"act" context, it might be situation?
+    # Actually, let's look for NARRATIVE indicators.
+    
+    # 5. Semantic/Narrative Indicators
+    # Long queries (> 10 words) without specific SQL keywords are likely narratives
+    word_count = len(query.split())
+    if word_count > 8 and not any(x in query_lower for x in ["case", "section", "act", "volume"]):
+        return "SEMANTIC"
+        
+    narrative_triggers = [
+        "situation", "scenario", "happened", "story", "like", "similar to",
+        "someone", "person", "theif", "robber", "killed", "murdered", "stole",
+        "describe", "explain"
+    ]
+    if any(trigger in query_lower for trigger in narrative_triggers):
+        return "SEMANTIC"
+
+    # Default to SQL if unsure (safer for legal DB)
+    return "SQL"
+
+def generate_semantic_answer(query: str, results: list) -> str:
+    """Generate RAG answer for semantic/situation results."""
+    if not results:
+        return "No similar cases found for this situation."
+        
+    context_text = ""
+    for i, res in enumerate(results, 1):
+        context_text += f"\nCASE {i}:\n"
+        context_text += f"Case No: {res.get('case_no')}\n"
+        context_text += f"Subject: {res.get('subject')}\n"
+        # Since we don't have full judgment in limited vector result, we rely on what we have.
+        # In a real app, we'd fetch the full judgment content by ID here if needed.
+        # For now, let's assume the vector metadata/doc content is sufficient for a summary.
+        doc_snippet = res.get('subject') # Or fetch from DB if needed? 
+        # Actually, let's fetch the summary/judgment snippet from DB for these IDs to give AI good context
+        
+    # Upgrade: Fetch better context for the found IDs
+    case_ids = [str(r['id']) for r in results if 'id' in r]
+    if case_ids:
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor(dictionary=True)
+                # fetch judgment snippet
+                format_strings = ','.join(['%s'] * len(case_ids))
+                cursor.execute(f"SELECT id, case_no, judgment, subject FROM ocr_extractions WHERE id IN ({format_strings})", tuple(case_ids))
+                db_rows = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                
+                # Map back to results
+                db_map = {str(row['id']): row for row in db_rows}
+                context_text = "" # Reset
+                for i, res in enumerate(results, 1):
+                    cid = str(res.get('id'))
+                    if cid in db_map:
+                        row = db_map[cid]
+                        judgment_snip = row['judgment'][:1500] if row['judgment'] else "N/A"
+                        context_text += f"\n--- CASE {i} ---\n"
+                        context_text += f"Case No: {row['case_no']}\n"
+                        context_text += f"Subject: {row['subject']}\n"
+                        context_text += f"Excerpt: {judgment_snip}...\n"
+                        # Add link for AI
+                        link = f"http://127.0.0.1:8000/subscriber/singleDecision/{cid}"
+                        context_text += f"Link: {link}\n"
+        except Exception as e:
+            logger.error(f"Error fetching context for semantic search: {e}")
+
+    prompt = f"""User Description: "{query}"
+
+Here are legal cases that might be relevant:
+{context_text}
+
+Task:
+1. Analyze the User's Situation.
+2. For EACH case provided, explain clearly **HOW it relates** to the user's situation. Does it match the crime? The circumstances? The legal principle?
+3. If a case is NOT relevant, say "Less relevant".
+4. Provide a disclaimer that this is AI research, not legal advice.
+
+Format:
+- **Case No:** [Case No]
+- **Relevance:** [Explanation]
+- [🔗 View Full Case](Link)
+"""
+    return call_gemini_api(prompt, max_tokens=800)
+
+
 def generate_sql(question: str) -> str:
     """Generate SQL query from natural language question using Gemini with accurate schema"""
     
@@ -323,6 +461,7 @@ COMPLETE FIELD LIST:
 - judge_name: Name of the judge (short)
 - judges: Full names of all judges (search here too)
 - content: Full text content
+- parties: Names of parties. IMPORTANT: content may contain HTML (e.g., `&amp;`, `&nbsp;`, `<strong>`). regex and wildcards are your friends. for "A & B", use `LIKE '%A%B%'`
 - file_path: Path to PDF file
 - file_name: Name of PDF file
 - status: Status of the record
@@ -372,8 +511,9 @@ IMPORTANT RULES:
 23. ARTICLE/SECTION SEARCHES: If user asks for "Article X of Act Y", you MUST SPLIT the search. Search `related_act_order_rule LIKE '%Y%'` AND `sections_subsections LIKE '%X%'`. Do NOT search for the full phrase "Article X of Act Y" in a single column. Note that sections often contain dashes (e.g. "Article—102"), so use broad wildcards like separate `LIKE` clauses or just the number.
 24. CITATION/SECTION REQUESTS: If user asks "what section?", "find rules", "articles mentioned", or "legal basis", you MUST include the `judgment` column in your SELECT statement to allow scanning the full text.
 25. PAGE LOOKUP: If user asks for "Page X of Volume Y", you MUST search for the case that CONTAINS that page. Use `book_volume = Y AND starting_page_no <= X AND ending_page_no >= X`. You MUST SELECT: `id, case_no, parties, book_volume, starting_page_no, ending_page_no, published_year, judge_name, decided_on, result, subject, judgment, petitioners, respondent`. Do NOT search for strict equality `starting_page_no = X`.
-26. VOLUME/YEAR CALCULATION: If user uses "Volume" in their query, calculate the Year as `1980 + VolumeNumber` and use `published_year` for the search. Example: "Volume 1" = Year 1981. Search `published_year = 1981` OR `book_volume = 1`.
-27. DELETED CASES: You must ALWAYS exclude deleted cases. Add `deleted_at IS NULL` to every query's WHERE clause. Example: `WHERE case_no LIKE '%...' AND deleted_at IS NULL`.
+26. VOLUME SEARCH: `book_volume` is often NULL. To find "Volume X", you MUST calculate the year: `Year = 1980 + X`. Your search condition MUST be: `(book_volume = X OR published_year = [CalculatedYear])`. Example: 'Volume 3' -> `(book_volume = 3 OR published_year = 1983)`.
+27. HTML/AMPERSAND HANDLING: If user query contains "&" (e.g. "Latif & Another"), you MUST use wildcards. Do NOT search `LIKE '%Latif & Another%'`. Search `LIKE '%Latif%Another%'`. The DB contains `&amp;` so exact `&` match fails.
+28. DELETED CASES: You must ALWAYS exclude deleted cases. Add `deleted_at IS NULL` to every query's WHERE clause. Example: `WHERE case_no LIKE '%...' AND deleted_at IS NULL`.
 
 QUERY EXAMPLES:
 
@@ -450,6 +590,11 @@ SQL:"""
     # PREPARE PROMPT WITH HINTS
     # We inject hints directly into the question block to ensure maximizing attention
     prompt_hints = ""
+    
+    # 0. Ampersand Hint
+    if "&" in question or " and " in question.lower():
+        prompt_hints += "\n[SYSTEM HINT: Query contains '&' or 'and'. Database often uses HTML '&amp;'. USE WILDCARDS `%` instead of specific joining characters in LIKE clauses.]"
+
     
     # 1. Date Hint
     date_components = extract_date_components(question)
@@ -1131,6 +1276,7 @@ def apply_custom_css():
             }}
         }}
         
+
         /* Landscape mobile */
         @media (max-width: 768px) and (orientation: landscape) {{
             .main-header {{
@@ -1141,6 +1287,78 @@ def apply_custom_css():
                 font-size: 1.75rem !important;
             }}
         }}
+
+        /* ============================================ */
+        /* SIDEBAR STYLING (TEXT ONLY LINKS) */
+        /* ============================================ */
+        
+        /* Reset all sidebar buttons to look like plain text */
+        [data-testid="stSidebar"] .stButton > button {{
+            width: 100%;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            text-align: left !important;
+            padding: 2px 0px !important; /* Minimal padding */
+            margin: 2px 0 !important;
+            color: #444 !important;
+            font-weight: normal !important;
+            height: auto !important;
+            min-height: auto !important;
+            line-height: 1.5 !important;
+            display: block !important;
+            border-radius: 0 !important;
+        }}
+
+        /* Hover: Only Text Color Change or Underline */
+        [data-testid="stSidebar"] .stButton > button:hover {{
+            color: #000 !important;
+            text-decoration: underline !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }}
+
+        /* Focus/Active/Pressed: No Box */
+        [data-testid="stSidebar"] .stButton > button:focus,
+        [data-testid="stSidebar"] .stButton > button:active {{
+            color: #000 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        
+
+
+        /* Specific: Style TOP ROW Buttons (New Chat, Toggle, Clear) - UNIFIED STYLE */
+        /* All 3 buttons in the horizontal block will look identical: Blue, Rounded, Equal Size */
+        [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] button {{
+            background-color: #dbeafe !important;
+            color: #1e40af !important;
+            border-radius: 12px !important;
+            border: none !important;
+            padding: 0 !important; /* Let flexbox center content */
+            margin: 0 !important;
+            text-align: center !important;
+            width: 100% !important;
+            height: 42px !important;
+            display: inline-flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            text-decoration: none !important;
+            transition: all 0.2s ease;
+            font-size: 1rem !important; /* Unify font size */
+        }}
+
+        [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] button:hover {{
+            background-color: #bfdbfe !important;
+            color: #1e3a8a !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        }}
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -1148,114 +1366,129 @@ apply_custom_css()
 
 # Sidebar
 with st.sidebar:
-    st.header("⚙️ Controls")
-    
     # History Section
-    with st.expander("📜 Chat History", expanded=True):
-        if st.session_state.user_id:
-             # NEW CHAT BUTTON
-             if st.button("➕ New Chat", use_container_width=True):
+    if st.session_state.user_id:
+        # TOP ROW: New Chat + Actions (3 Equal Columns)
+        c1, c2, c3 = st.columns(3)
+        
+        with c1:
+            # Shortened label to fit in 1/3 width
+            if st.button("📝", key="new_chat_main", help="New Chat", use_container_width=True):
+                st.session_state.messages = []
+                st.session_state.current_session_id = str(uuid.uuid4())
+                st.session_state.current_case = None 
+                st.rerun()
+                
+        with c2:
+            # Toggle Sources Icon
+            icon_s = "📖" if st.session_state.show_sources else "📕"
+            if st.button(icon_s, key="toggle_sources_side", help="Toggle Sources", use_container_width=True):
+                st.session_state.show_sources = not st.session_state.show_sources
+                st.rerun()
+                
+        with c3:
+            # Clear Chat Icon
+            if st.button("🧹", key="clear_chat_side", help="Clear Conversation", use_container_width=True):
                  st.session_state.messages = []
-                 st.session_state.current_session_id = str(uuid.uuid4())
-                 st.session_state.current_case = None # Reset case context
+                 if not st.session_state.context_locked:
+                     st.session_state.current_case = None
                  st.rerun()
-                 
-             st.markdown("---")
-             
-             # LOAD SESSIONS LIST
-             try:
-                 conn = get_db_connection()
-                 if conn:
-                     cursor = conn.cursor(dictionary=True)
-                     # Get headers of last 10 sessions (distinct session_id)
-                     # We group by session_id and take the FIRST user message as the title
-                     query = f"""
-                        SELECT session_id, 
-                               MIN(created_at) as started_at,
-                               (SELECT content FROM ai_chat_histories h2 WHERE h2.session_id = h1.session_id AND role='user' ORDER BY id ASC LIMIT 1) as title
-                        FROM ai_chat_histories h1 
-                        WHERE user_id = {st.session_state.user_id} 
-                        GROUP BY session_id 
-                        ORDER BY started_at DESC 
-                        LIMIT 10
-                     """
-                     cursor.execute(query)
-                     sessions = cursor.fetchall()
-                     
-                     st.caption(f"Recent Conversations ({len(sessions)})")
-                     
-                     for sess in sessions:
-                         sid = sess['session_id']
-                         # Handle missing title or missing UUID
-                         if not sid: continue 
-                         
-                         title = sess['title'] if sess['title'] else "New Chat conversation"
-                         if len(title) > 30: title = title[:30] + "..."
-                         
-                         # Determine button style (Active vs Inactive)
-                         # Note: Streamlit buttons don't support custom CSS classes easily in loop without hacks, 
-                         # so we just use standard buttons.
-                         if st.button(f"💬 {title}", key=sid, use_container_width=True):
-                             # LOAD SESSION LOGIC
-                             st.session_state.current_session_id = sid
-                             st.session_state.messages = []
-                             
-                             cursor.execute(f"SELECT role, content FROM ai_chat_histories WHERE session_id = '{sid}' ORDER BY id ASC")
-                             history = cursor.fetchall()
-                             for msg in history:
-                                 st.session_state.messages.append({"role": msg['role'], "content": msg['content']})
-                             st.rerun()
+            
+        # Spacer
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+        
+        # LOAD SESSIONS LIST
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor(dictionary=True)
+                query = f"""
+                SELECT session_id, 
+                        MIN(created_at) as started_at,
+                        (SELECT content FROM ai_chat_histories h2 WHERE h2.session_id = h1.session_id AND role='user' ORDER BY id ASC LIMIT 1) as title
+                FROM ai_chat_histories h1 
+                WHERE user_id = {st.session_state.user_id} 
+                GROUP BY session_id 
+                ORDER BY started_at DESC 
+                LIMIT 15
+                """
+                cursor.execute(query)
+                sessions = cursor.fetchall()
+                
+                # Tiny Header "Chats"
+                st.markdown("<p style='font-size: 12px; font-weight: 600; color: #666; margin-bottom: 5px; margin-top: 10px;'>Chats</p>", unsafe_allow_html=True)
+                
+                for sess in sessions:
+                    sid = sess['session_id']
+                    if not sid: continue 
+                    
+                    title = sess['title'] if sess['title'] else "New Chat"
+                    if len(title) > 28: title = title[:28] + "..."
+                    
+                    # No icon in the list items (as per image reference), just text
+                    if st.button(f"{title}", key=sid, use_container_width=True):
+                        st.session_state.current_session_id = sid
+                        st.session_state.messages = []
+                        cursor.execute(f"SELECT role, content FROM ai_chat_histories WHERE session_id = '{sid}' ORDER BY id ASC")
+                        history = cursor.fetchall()
+                        for msg in history:
+                            st.session_state.messages.append({"role": msg['role'], "content": msg['content']})
+                        st.rerun()
 
-                     cursor.close()
-                     conn.close()
-             except Exception as e:
-                 st.error(f"Error loading history: {e}")
-                 
-             # Clear All History
-             st.markdown("---")
-             if st.button("🗑️ Delete All History", use_container_width=True):
-                 try:
-                     conn = get_db_connection()
-                     if conn:
-                         cursor = conn.cursor()
-                         cursor.execute(f"DELETE FROM ai_chat_histories WHERE user_id = {st.session_state.user_id}")
-                         conn.commit()
-                         cursor.close()
-                         conn.close()
-                         st.session_state.messages = []
-                         st.rerun()
-                 except Exception as e:
-                     st.error(f"Failed: {e}")
-        else:
-             st.warning("⚠️ No User ID detected. History not saving.")
-             st.caption("Access via the BLD Dashboard to enable history.")
+                cursor.close()
+                conn.close()
+        except Exception as e:
+            st.error(f"Error loading history: {e}")
+            
+        # Clear All History (Pinned to Bottom)
+        st.markdown(
+            """
+            <style>
+                .sidebar-footer {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    width: 280px; /* Match sidebar width */
+                    padding: 1rem;
+                    background: inherit; /* Blend with sidebar */
+                    z-index: 999;
+                    border-top: 1px solid rgba(0,0,0,0.1);
+                }
+                
+                /* Adjust main sidebar content to not be covered */
+                [data-testid="stSidebar"] > div:first-child {
+                    padding-bottom: 80px;
+                }
+            </style>
+            <div class="sidebar-footer">
+            """,
+            unsafe_allow_html=True
+        )
+        
+        if st.button("🗑️ Delete All History", use_container_width=True):
+            try:
+                conn = get_db_connection()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute(f"DELETE FROM ai_chat_histories WHERE user_id = {st.session_state.user_id}")
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    st.session_state.messages = []
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Failed: {e}")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ No User ID detected. History not saving.")
+        st.caption("Access via the BLD Dashboard to enable history.")
 
-# Top Control Bar
+# Top Control Bar - REMOVED (Moved to Sidebar)
 with st.container():
-    col1, col2, col3 = st.columns([18, 1, 1])
-    
-    with col1:
-         # Show context banner if locked
-         if st.session_state.context_locked and st.session_state.current_case:
-             st.info(f"🔒 **Context Locked**: Discussing **{st.session_state.current_case}**")
-
-    with col2:
-        # Toggle Sources Button
-        icon = "📖" if st.session_state.show_sources else "📕"
-        if st.button(icon, help="Toggle Sources Panel", use_container_width=True):
-            st.session_state.show_sources = not st.session_state.show_sources
-            st.rerun()
-
-    with col3:
-        # Clear Chat Button (Top Right - beside Deploy)
-        if st.button("🗑️", help="Clear Conversation", use_container_width=True):
-            st.session_state.messages = []
-            # Do NOT clear context if locked
-            if not st.session_state.context_locked:
-                st.session_state.current_case = None
-                st.session_state.current_parties = None
-                st.session_state.current_case_id = None
-            st.rerun()
+    # Only show context lock banner if needed
+    if st.session_state.context_locked and st.session_state.current_case:
+         st.info(f"🔒 **Context Locked**: Discussing **{st.session_state.current_case}**")
     
 # Initialize database
 init_database()
@@ -1420,79 +1653,60 @@ if prompt := st.chat_input("Ask about a legal case..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Generate SQL
-    if not processed_prompt:
-        processed_prompt = prompt # Fallback
+                # Generate Response based on Intent
+    with st.spinner("Analyzing legal precedents..."):
         
-    with st.spinner("Generating SQL query..."):
-        sql = generate_sql(processed_prompt)
-    
-        if sql:
-            # Execute SQL
-            with st.spinner("Searching database..."):
-                results = execute_sql(sql)
-                
-                # Perform Semantic Search (Hybrid Approach)
-                try:
-                    semantic_results = perform_semantic_search(prompt, limit=5)
-                    if results is None:
-                        results = []
-                    
-                    # Deduplicate and Append
-                    existing_ids = set()
-                    for r in results:
-                        existing_ids.add(str(r.get('id'))) 
-                    
-                    for res in semantic_results:
-                        if str(res['id']) not in existing_ids:
-                            results.append(res)
-                            
-                except Exception as e:
-                    logger.error(f"Hybrid search error: {e}")
-            
+        # 0. Context Check (Unlock if switching cases)
+        check_and_unlock_context(processed_prompt)
+
+        # 1. Classify Intent
+        intent = classify_query_intent(processed_prompt)
+        logger.info(f"Query Intent: {intent}")
+        
+        response_text = ""
+        results = []
+        
+        if intent == "SEMANTIC":
+            # Semantic Path
+            results = perform_semantic_search(processed_prompt, limit=5)
             if results:
-                # SAVE RESULTS TO SESSION STATE FOR RIGHT PANEL
-                st.session_state.latest_results = results
-                
-                # Generate Answer
-                with st.spinner("Analyzing case data..."):
-                    answer = generate_answer(prompt, results)
-                
-                # Add assistant message
-                # Add assistant message
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": answer,
-                    "sql": sql
-                })
-                
-                # SAVE ASSISTANT MESSAGE
-                if st.session_state.user_id:
-                     save_chat_message(st.session_state.user_id, "assistant", answer, st.session_state.current_session_id)
-                
-                # Rerun to update the Right Panel immediately
-                st.rerun()
+                response_text = generate_semantic_answer(processed_prompt, results)
             else:
-                # Differentiate between Error (None) and No Results ([])
-                if results is None:
-                     error_msg = "Error executing SQL query. Please try rephrasing your question."
-                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
-                     if st.session_state.user_id:
-                         save_chat_message(st.session_state.user_id, "assistant", error_msg, st.session_state.current_session_id)
-                     with st.chat_message("assistant"):
-                         st.error(error_msg)
-                else:
-                     warning_msg = "No matching cases found. Try broadening your search or checking spelling."
-                     st.session_state.messages.append({"role": "assistant", "content": warning_msg})
-                     if st.session_state.user_id:
-                         save_chat_message(st.session_state.user_id, "assistant", warning_msg, st.session_state.current_session_id)
-                     with st.chat_message("assistant"):
-                         st.warning(warning_msg)
+                response_text = "No cases found matching that situation description."
+                
         else:
-            error_msg = "Error generating SQL query. Please try again."
-            st.session_state.messages.append({"role": "assistant", "content": error_msg})
-            with st.chat_message("assistant"):
-                st.error(error_msg)
+            # SQL Path (Legacy Logic)
+            sql = generate_sql(processed_prompt)
+            if sql:
+                results = execute_sql(sql)
+                if results:
+                    response_text = generate_answer(processed_prompt, results)
+                else:
+                     # Fallback to judgment search
+                     response_text = generate_answer(processed_prompt, [], used_fallback=True)
+            else:
+                 response_text = "Sorry, I couldn't understand how to search for that. Please try rephrasing."
+
+        # 2. Save Results for UI Sidebar
+        if results:
+            st.session_state.latest_results = results
+            
+        # 3. Cleanup response text
+        if response_text:
+            response_text = response_text.replace("```markdown", "").replace("```", "")
+            
+        # 4. Display Assistant Message
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
+        st.chat_message("assistant").write(response_text)
+        
+        # 5. Save to History
+        if st.session_state.user_id:
+             save_chat_message(st.session_state.user_id, "assistant", response_text, st.session_state.current_session_id)
+        
+        # 6. Rerun to update Sidebar
+        if results:
+            st.rerun()
+
 
 # Footer
 

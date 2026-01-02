@@ -156,12 +156,14 @@
 
   </nav>
 
-  @if((isset($announcements) && $announcements->count() > 0) || (isset($activeReminders) && $activeReminders->count() > 0))
+  @if(!Route::is('subscriber.myDecision.editNote') && !Route::is('ai.research') && ((isset($announcements) && $announcements->count() > 0) || (isset($activeReminders) && $activeReminders->count() > 0)))
     <div class="announcement-bar footer dark-background py-2 overflow-hidden"
-      style="border-top: none; padding-top: 10px; padding-bottom: 10px;">
+      style="border-top: none; padding-top: 10px; padding-bottom: 10px; background: linear-gradient(90deg, #003092, #0051c4);">
       <div class="container">
         <div class="d-flex align-items-center">
-          <div class="announcement-label bg-danger text-white px-2 py-1 me-3 rounded small fw-bold text-nowrap">
+          <div
+            class="announcement-label bg-danger text-white px-2 py-1 me-3 rounded small fw-bold text-nowrap d-flex align-items-center justify-content-center"
+            style="margin-left: -15px;">
             Announcements
           </div>
           <div class="marquee-container w-100 overflow-hidden position-relative">
@@ -195,6 +197,7 @@
         display: inline-block;
         animation: marquee 40s linear infinite;
         font-size: 1.1em;
+        color: #fff;
       }
 
       .marquee-container:hover .marquee-content {
@@ -213,254 +216,256 @@
     </style>
   @endif
 
-  <!-- Chat Widget -->
-  <!-- Floating Chat Button -->
-  <div id="chat-floating-btn" onclick="toggleChat()"
-    style="position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background-color: #0d6efd; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1060; transition: transform 0.2s;">
-    <i class="bi bi-chat-dots-fill fs-3"></i>
-  </div>
+  @if(!Route::is('subscriber.myDecision.editNote') && !Route::is('ai.research'))
+    <!-- Chat Widget -->
+    <!-- Floating Chat Button -->
+    <div id="chat-floating-btn" onclick="toggleChat()"
+      style="position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background-color: #0d6efd; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1060; transition: transform 0.2s;">
+      <i class="bi bi-chat-dots-fill fs-3"></i>
+    </div>
 
-  <div id="chat-widget" class="card shadow border-0"
-    style="display: none; position: fixed; bottom: 100px; left: 30px; width: 350px; z-index: 1050; transition: all 0.3s ease;">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <span class="fw-bold"><i class="bi bi-chat-dots"></i> Support Chat</span>
-      <div>
-        <button class="btn btn-sm btn-link text-white p-0 me-2" onclick="maximizeChat()">
-          <i class="bi bi-arrows-fullscreen" id="maximize-icon"></i>
-        </button>
-        <button class="btn btn-sm btn-link text-white p-0 me-2" onclick="minimizeChat()"><i
-            class="bi bi-dash-lg"></i></button>
-        <button class="btn btn-sm btn-link text-white p-0" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
+    <div id="chat-widget" class="card shadow border-0"
+      style="display: none; position: fixed; bottom: 100px; left: 30px; width: 350px; z-index: 1050; transition: all 0.3s ease;">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-chat-dots"></i> Support Chat</span>
+        <div>
+          <button class="btn btn-sm btn-link text-white p-0 me-2" onclick="maximizeChat()">
+            <i class="bi bi-arrows-fullscreen" id="maximize-icon"></i>
+          </button>
+          <button class="btn btn-sm btn-link text-white p-0 me-2" onclick="minimizeChat()"><i
+              class="bi bi-dash-lg"></i></button>
+          <button class="btn btn-sm btn-link text-white p-0" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+      <div class="card-body p-0" id="chat-body">
+        <div id="chat-messages" class="p-3 bg-light" style="height: 300px; overflow-y: auto;">
+          <div class="text-center text-muted small mt-5">Loading messages...</div>
+        </div>
+        <div class="p-2 border-top bg-white">
+          <form id="chat-form" onsubmit="sendMessage(event)">
+            <div class="input-group">
+              <input type="text" id="chat-input" class="form-control form-control-sm" placeholder="Type your question..."
+                required>
+              <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-send"></i></button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="card-body p-0" id="chat-body">
-      <div id="chat-messages" class="p-3 bg-light" style="height: 300px; overflow-y: auto;">
-        <div class="text-center text-muted small mt-5">Loading messages...</div>
-      </div>
-      <div class="p-2 border-top bg-white">
-        <form id="chat-form" onsubmit="sendMessage(event)">
-          <div class="input-group">
-            <input type="text" id="chat-input" class="form-control form-control-sm" placeholder="Type your question..."
-              required>
-            <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-send"></i></button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
-  <style>
-    .message-bubble {
-      max-width: 80%;
-      padding: 8px 12px;
-      border-radius: 12px;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-    }
-
-    .message-sent {
-      background-color: #0d6efd;
-      color: white;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
-      margin-left: auto;
-    }
-
-    .message-received {
-      background-color: #e9ecef;
-      color: black;
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
-    }
-  </style>
-
-  <script>
-    let chatOpen = false;
-    let chatMinimized = false;
-    let chatMaximized = false;
-    let chatPollInterval = null;
-
-    function toggleChat() {
-      const widget = document.getElementById('chat-widget');
-      const btn = document.getElementById('chat-floating-btn');
-
-      if (chatOpen) {
-        widget.style.display = 'none';
-        btn.style.display = 'flex'; // Show button when chat closed
-        clearInterval(chatPollInterval);
-        chatOpen = false;
-      } else {
-        widget.style.display = 'block';
-        btn.style.display = 'none'; // Hide button when chat open
-        chatOpen = true;
-        chatMinimized = false;
-        document.getElementById('chat-body').style.display = 'block';
-        fetchMessages();
-        chatPollInterval = setInterval(fetchMessages, 3000);
-      }
-    }
-
-    function maximizeChat() {
-      const widget = document.getElementById('chat-widget');
-      const messages = document.getElementById('chat-messages');
-      const icon = document.getElementById('maximize-icon');
-
-      if (chatMaximized) {
-        // Restore
-        widget.style.width = '350px';
-        widget.style.height = 'auto'; // reset height
-        widget.style.bottom = '100px';
-        widget.style.right = 'auto'; // clear right
-        widget.style.left = '30px';  // set left
-        widget.style.top = 'auto';
-        messages.style.height = '300px';
-        icon.classList.remove('bi-fullscreen-exit');
-        icon.classList.add('bi-arrows-fullscreen');
-        chatMaximized = false;
-      } else {
-        // Maximize
-        widget.style.width = '90vw';
-        widget.style.height = '80vh';
-        widget.style.bottom = '10vh';
-        widget.style.right = '5vw';
-        widget.style.top = '10vh';
-        widget.style.left = '5vw';
-        messages.style.height = 'calc(80vh - 105px)'; // Adjust for header and input
-        icon.classList.remove('bi-arrows-fullscreen');
-        icon.classList.add('bi-fullscreen-exit');
-        chatMaximized = true;
-        chatMinimized = false;
-        document.getElementById('chat-body').style.display = 'block';
-      }
-    }
-
-    // Draggable Logic
-    const floatingBtn = document.getElementById('chat-floating-btn');
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
-
-    floatingBtn.addEventListener("mousedown", dragStart);
-    floatingBtn.addEventListener("mouseup", dragEnd);
-    floatingBtn.addEventListener("mousemove", drag);
-
-    floatingBtn.addEventListener("touchstart", dragStart, { passive: false });
-    floatingBtn.addEventListener("touchend", dragEnd);
-    floatingBtn.addEventListener("touchmove", drag, { passive: false });
-
-    function dragStart(e) {
-      if (e.type === "touchstart") {
-        initialX = e.touches[0].clientX - xOffset;
-        initialY = e.touches[0].clientY - yOffset;
-      } else {
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
+    <style>
+      .message-bubble {
+        max-width: 80%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
       }
 
-      if (e.target.closest('#chat-floating-btn')) {
-        isDragging = true;
+      .message-sent {
+        background-color: #0d6efd;
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+        margin-left: auto;
       }
-    }
 
-    function dragEnd(e) {
-      initialX = currentX;
-      initialY = currentY;
-      isDragging = false;
-    }
+      .message-received {
+        background-color: #e9ecef;
+        color: black;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+      }
+    </style>
 
-    function drag(e) {
-      if (isDragging) {
-        e.preventDefault();
+    <script>
+      let chatOpen = false;
+      let chatMinimized = false;
+      let chatMaximized = false;
+      let chatPollInterval = null;
 
-        if (e.type === "touchmove") {
-          currentX = e.touches[0].clientX - initialX;
-          currentY = e.touches[0].clientY - initialY;
+      function toggleChat() {
+        const widget = document.getElementById('chat-widget');
+        const btn = document.getElementById('chat-floating-btn');
+
+        if (chatOpen) {
+          widget.style.display = 'none';
+          btn.style.display = 'flex'; // Show button when chat closed
+          clearInterval(chatPollInterval);
+          chatOpen = false;
         } else {
-          currentX = e.clientX - initialX;
-          currentY = e.clientY - initialY;
+          widget.style.display = 'block';
+          btn.style.display = 'none'; // Hide button when chat open
+          chatOpen = true;
+          chatMinimized = false;
+          document.getElementById('chat-body').style.display = 'block';
+          fetchMessages();
+          chatPollInterval = setInterval(fetchMessages, 3000);
+        }
+      }
+
+      function maximizeChat() {
+        const widget = document.getElementById('chat-widget');
+        const messages = document.getElementById('chat-messages');
+        const icon = document.getElementById('maximize-icon');
+
+        if (chatMaximized) {
+          // Restore
+          widget.style.width = '350px';
+          widget.style.height = 'auto'; // reset height
+          widget.style.bottom = '100px';
+          widget.style.right = 'auto'; // clear right
+          widget.style.left = '30px';  // set left
+          widget.style.top = 'auto';
+          messages.style.height = '300px';
+          icon.classList.remove('bi-fullscreen-exit');
+          icon.classList.add('bi-arrows-fullscreen');
+          chatMaximized = false;
+        } else {
+          // Maximize
+          widget.style.width = '90vw';
+          widget.style.height = '80vh';
+          widget.style.bottom = '10vh';
+          widget.style.right = '5vw';
+          widget.style.top = '10vh';
+          widget.style.left = '5vw';
+          messages.style.height = 'calc(80vh - 105px)'; // Adjust for header and input
+          icon.classList.remove('bi-arrows-fullscreen');
+          icon.classList.add('bi-fullscreen-exit');
+          chatMaximized = true;
+          chatMinimized = false;
+          document.getElementById('chat-body').style.display = 'block';
+        }
+      }
+
+      // Draggable Logic
+      const floatingBtn = document.getElementById('chat-floating-btn');
+      let isDragging = false;
+      let currentX;
+      let currentY;
+      let initialX;
+      let initialY;
+      let xOffset = 0;
+      let yOffset = 0;
+
+      floatingBtn.addEventListener("mousedown", dragStart);
+      floatingBtn.addEventListener("mouseup", dragEnd);
+      floatingBtn.addEventListener("mousemove", drag);
+
+      floatingBtn.addEventListener("touchstart", dragStart, { passive: false });
+      floatingBtn.addEventListener("touchend", dragEnd);
+      floatingBtn.addEventListener("touchmove", drag, { passive: false });
+
+      function dragStart(e) {
+        if (e.type === "touchstart") {
+          initialX = e.touches[0].clientX - xOffset;
+          initialY = e.touches[0].clientY - yOffset;
+        } else {
+          initialX = e.clientX - xOffset;
+          initialY = e.clientY - yOffset;
         }
 
-        xOffset = currentX;
-        yOffset = currentY;
-
-        setTranslate(currentX, currentY, floatingBtn);
-      }
-    }
-
-    function setTranslate(xPos, yPos, el) {
-      el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-    }
-
-    function minimizeChat() {
-      const body = document.getElementById('chat-body');
-      if (chatMinimized) {
-        body.style.display = 'block';
-        chatMinimized = false;
-      } else {
-        body.style.display = 'none';
-        chatMinimized = true;
-      }
-    }
-
-    function fetchMessages() {
-      $.get("{{ route('subscriber.chat.messages') }}", function (messages) {
-        // const container = document.getElementById('chat-messages');
-        // container.innerHTML = ''; // This clears everything, making it hard to read if polling often. Ideally append only new.
-
-        const container = document.getElementById('chat-messages');
-        container.innerHTML = '';
-        if (messages.length === 0) {
-          container.innerHTML = '<div class="text-center text-muted small mt-5">No messages yet. Ask a question!</div>';
-          return;
+        if (e.target.closest('#chat-floating-btn')) {
+          isDragging = true;
         }
+      }
 
-        messages.forEach(msg => {
-          const div = document.createElement('div');
-          div.className = `message-bubble ${msg.sender_type === 'subscriber' ? 'message-sent' : 'message-received'}`;
-          div.textContent = msg.message;
-          container.appendChild(div);
+      function dragEnd(e) {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+      }
+
+      function drag(e) {
+        if (isDragging) {
+          e.preventDefault();
+
+          if (e.type === "touchmove") {
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+          } else {
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+          }
+
+          xOffset = currentX;
+          yOffset = currentY;
+
+          setTranslate(currentX, currentY, floatingBtn);
+        }
+      }
+
+      function setTranslate(xPos, yPos, el) {
+        el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+      }
+
+      function minimizeChat() {
+        const body = document.getElementById('chat-body');
+        if (chatMinimized) {
+          body.style.display = 'block';
+          chatMinimized = false;
+        } else {
+          body.style.display = 'none';
+          chatMinimized = true;
+        }
+      }
+
+      function fetchMessages() {
+        $.get("{{ route('subscriber.chat.messages') }}", function (messages) {
+          // const container = document.getElementById('chat-messages');
+          // container.innerHTML = ''; // This clears everything, making it hard to read if polling often. Ideally append only new.
+
+          const container = document.getElementById('chat-messages');
+          container.innerHTML = '';
+          if (messages.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted small mt-5">No messages yet. Ask a question!</div>';
+            return;
+          }
+
+          messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message-bubble ${msg.sender_type === 'subscriber' ? 'message-sent' : 'message-received'}`;
+            div.textContent = msg.message;
+            container.appendChild(div);
+          });
+
+          if (!chatMinimized) container.scrollTop = container.scrollHeight;
         });
+      }
 
-        if (!chatMinimized) container.scrollTop = container.scrollHeight;
-      });
-    }
+      function sendMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const message = input.value;
+        if (!message.trim()) return;
 
-    function sendMessage(e) {
-      e.preventDefault();
-      const input = document.getElementById('chat-input');
-      const message = input.value;
-      if (!message.trim()) return;
-
-      $.ajax({
-        url: "{{ route('subscriber.chat.send') }}",
-        type: "POST",
-        data: {
-          _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-          message: message
-        },
-        success: function (response) {
-          if (response.success) {
-            input.value = '';
-            fetchMessages();
-          } else {
-            alert('Failed to send message: ' + (response.message || 'Unknown error'));
+        $.ajax({
+          url: "{{ route('subscriber.chat.send') }}",
+          type: "POST",
+          data: {
+            _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            message: message
+          },
+          success: function (response) {
+            if (response.success) {
+              input.value = '';
+              fetchMessages();
+            } else {
+              alert('Failed to send message: ' + (response.message || 'Unknown error'));
+            }
+          },
+          error: function (xhr) {
+            console.error(xhr);
+            if (xhr.status === 419) {
+              alert('Session expired. Please refresh the page.');
+            } else {
+              alert('Error sending message. Status: ' + xhr.status);
+            }
           }
-        },
-        error: function (xhr) {
-          console.error(xhr);
-          if (xhr.status === 419) {
-            alert('Session expired. Please refresh the page.');
-          } else {
-            alert('Error sending message. Status: ' + xhr.status);
-          }
-        }
-      });
-    }
-  </script>
+        });
+      }
+    </script>
+  @endif
   <form id="logoutForm" action="{{ route('subscriber.logout') }}" method="POST" style="display:none;">
     @csrf
   </form>

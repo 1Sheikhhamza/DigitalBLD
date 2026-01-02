@@ -152,5 +152,20 @@ class AppServiceProvider extends ServiceProvider
             $view->with('announcements', $announcements)
                 ->with('activeReminders', $activeReminders);
         });
+
+        // View Composer for Landing Page / Public Layout
+        View::composer(['layouts.app', 'frontend.home'], function ($view) {
+            $announcements = \App\Models\Announcement::where('is_active', true)
+                ->where('target_type', 'all')
+                ->latest()
+                ->get();
+            $view->with('announcements', $announcements);
+        });
+
+        // Force HTTPS if configured in APP_URL (Fixes ngrok layout issues)
+        // BUT exclude localhost (127.0.0.1) so local dev keeps working
+        if (str_contains(config('app.url'), 'https://') && !in_array(request()->getHost(), ['127.0.0.1', 'localhost'])) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }

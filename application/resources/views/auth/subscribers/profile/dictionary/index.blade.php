@@ -30,6 +30,22 @@
             </div>
         </div>
 
+        <!-- Alphabet Filter -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8 text-center">
+                <div class="alphabet-nav">
+                    <a href="{{ route('subscriber.dictionary.index') }}"
+                        class="alphabet-link {{ !$letter ? 'active' : '' }}">All</a>
+                    @foreach(range('A', 'Z') as $char)
+                        <a href="{{ route('subscriber.dictionary.index', ['letter' => $char]) }}"
+                            class="alphabet-link {{ $letter == $char ? 'active' : '' }}">
+                            {{ $char }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
         <!-- Word List -->
         <div class="row">
             <div class="col-md-8 offset-md-2">
@@ -64,7 +80,7 @@
     </div>
 @endsection
 
-@section('styles')
+@push('styles')
     <style>
         .dictionary-item {
             transition: transform 0.2s, box-shadow 0.2s;
@@ -147,10 +163,47 @@
         .autocomplete-item strong {
             color: #0d6efd;
         }
-    </style>
-@endsection
 
-@section('scripts')
+        /* Alphabet Filter Styles */
+        .alphabet-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .alphabet-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            margin: 0;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #0d6efd;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s;
+            border: 1px solid #e0e0e0;
+            background-color: #fff;
+        }
+
+        .alphabet-link:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+
+        .alphabet-link.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+            box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+        }
+    </style>
+@endpush
+
+@push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('dictionarySearch');
@@ -302,4 +355,4 @@
             });
         });
     </script>
-@endsection
+@endpush
